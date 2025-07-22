@@ -1,5 +1,6 @@
-import antfu from '@antfu/eslint-config'
+import { defineEslintConfig } from '@subframe7536/eslint-config'
 
-export default antfu({
+export default defineEslintConfig({
   unocss: true,
+  vue: false,
 })

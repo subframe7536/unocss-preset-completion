@@ -1,65 +1,84 @@
-import { definePreset } from 'unocss'
+/* eslint-disable no-cond-assign */
+import type { AutoCompleteExtractor, AutoCompleteExtractorResult, Preset } from '@unocss/core'
 
-export interface StarterOptions {
+import { appendFileSync } from 'node:fs'
+
+export interface CompletionOptions {
   /**
-   *  The number of columns in the grid system (Example option)
-   *
-   * @default 12
+   * Array of function names that trigger class name autocomplete suggestions.
+   * @default ['clsx']
    */
-  span?: number
+  autocompleteFunctions?: string[]
 }
 
-export const presetStarter = definePreset((_options: StarterOptions = {}) => {
-  const span = _options.span ?? 12
+const stringRegex = /'[^']*'|"[^"]*"/g
+function log(...args: any): void {
+  const p = '/Users/subf/Developer/front/unocss-preset-custom-completion/uno.log'
+  appendFileSync(p, `${JSON.stringify(args)}\n`, 'utf-8')
+}
 
-  return {
-    name: 'unocss-preset-starter',
+export function presetCompletion(options: CompletionOptions = {}): Preset {
+  const { autocompleteFunctions = ['clsx', 'cls'] } = options
 
-    theme: {
-      // Customize your theme here
-    },
+  const regString = `(${autocompleteFunctions.map(name => name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')).join('|')})\\s*\\(([^)]*)`
+  // Regular expression to match function calls with arguments
+  const functionPattern = new RegExp(regString, 'g')
 
-    // Customize your preset here
-    rules: [
-      ['custom-rule', { color: 'red' }],
-      [
-        /col-(\d+)/,
-        ([_, s]) => ({ width: `calc(${s} / ${span} * 100%)` }),
-        { autocomplete: 'col-<span>' },
-      ],
-    ],
+  const extractor: AutoCompleteExtractor = {
+    name: 'class-functions',
+    extract({ content, cursor }): AutoCompleteExtractorResult | null {
+      let match
+      functionPattern.lastIndex = 0
 
-    // Customize your variants here
-    variants: [
-      {
-        name: '@active',
-        match(matcher) {
-          if (!matcher.startsWith('@active'))
-            return matcher
+      while ((match = functionPattern.exec(content)) !== null) {
+        const functionStart = match.index
+        const argsStart = functionStart + match[0].indexOf('(') + 1
+        const argsEnd = functionStart + match[0].length - 1
+        const argsContent = match[2]
+        if (cursor < argsStart || cursor > argsEnd) {
+          log('Not inside args')
+          continue
+        }
+        log('Start matching')
+        // Find the string literal containing the cursor
+        let stringMatch
+        while ((stringMatch = stringRegex.exec(argsContent)) !== null) {
+          const stringStart = argsStart + stringMatch.index
+          const stringEnd = stringStart + stringMatch[0].length
+          log({ stringStart, stringEnd })
+          if (cursor > stringStart && cursor < stringEnd) {
+            const stringContent = stringMatch[0].slice(1, -1)
+            const cursorRel = cursor - (stringStart + 1)
 
-          return {
-            matcher: matcher.slice(8),
-            selector: s => `${s}.active`,
+            // Find token boundaries
+            const lastSpace = stringContent.lastIndexOf(' ', cursorRel - 1)
+            const tokenStartRel = lastSpace === -1 ? 0 : lastSpace + 1
+            const nextSpace = stringContent.indexOf(' ', cursorRel)
+            const tokenEndRel = nextSpace === -1 ? stringContent.length : nextSpace
+
+            log({ lastSpace, tokenStartRel, tokenEndRel, nextSpace })
+
+            const extracted = stringContent.slice(tokenStartRel, cursorRel)
+
+            return {
+              extracted,
+              resolveReplacement: (suggestion: string) => {
+                const start = stringStart + 1 + tokenStartRel
+                const end = stringStart + 1 + tokenEndRel
+                return { start, end, replacement: suggestion }
+              },
+            }
           }
-        },
-      },
-    ],
+        }
+      }
 
-    // You can also define built-in presets
-    presets: [
-      // ...
-    ],
-
-    // You can also define built-in transformers
-    transformers: [
-      // ...
-    ],
-
-    // Customize AutoComplete
-    autocomplete: {
-      shorthands: {
-        span: Array.from({ length: span }, (_, i) => `${i + 1}`),
-      },
+      return null
     },
   }
-})
+  return {
+    name: 'unocss-preset-custom-completion',
+    autocomplete: {
+      extractors: [extractor],
+    },
+  }
+}

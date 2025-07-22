@@ -1,13 +1,12 @@
-import { defineConfig, presetUno } from 'unocss'
-import { presetStarter } from './src'
+import type { UserConfig } from '@unocss/core'
 
-// Just for Vscode Extension
+import { presetWind3 } from '@unocss/preset-wind3'
 
-export default defineConfig({
+import { presetCompletion } from './src'
+
+export default {
   presets: [
-    presetUno(),
-    presetStarter({
-      span: 24,
-    }),
+    presetWind3(),
+    presetCompletion(),
   ],
-})
+} satisfies UserConfig

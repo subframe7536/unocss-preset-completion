@@ -1,24 +1,23 @@
 {
-  "name": "unocss-preset-starter",
+  "name": "unocss-preset-custom-completion",
   "type": "module",
   "version": "0.0.0",
-  "packageManager": "pnpm@10.12.3",
-  "description": "<description>",
+  "description": "Custom auto completion preset for UnoCSS",
   "author": "unpreset <https://github.com/unpreset>",
   "license": "MIT",
-  "homepage": "https://github.com/unpreset/unocss-preset-starter#readme",
+  "homepage": "https://github.com/unpreset/unocss-preset-custom-completion#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/unpreset/unocss-preset-starter.git"
+    "url": "git+https://github.com/unpreset/unocss-preset-custom-completion.git"
   },
   "bugs": {
-    "url": "https://github.com/unpreset/unocss-preset-starter/issues"
+    "url": "https://github.com/unpreset/unocss-preset-custom-completion/issues"
   },
   "keywords": [
     "unocss",
     "unpreset",
     "unocss-preset",
-    "unocss-preset-starter"
+    "unocss-preset-custom-completion"
   ],
   "sideEffects": false,
   "exports": {
@@ -44,29 +43,20 @@
   "scripts": {
     "build": "tsdown",
     "dev": "tsdown --watch",
-    "prepublishOnly": "pnpm run build",
-    "release": "bumpp --commit --push --tag && pnpm publish",
+    "release": "bun run build && bumpp && npm publish",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "test": "vitest",
-    "test:update": "vitest --update",
-    "play": "vite playground",
-    "deploy": "vite build playground"
+    "test": "bun test"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^4.16.1",
-    "@babel/types": "^7.27.6",
-    "@types/node": "^24.0.4",
-    "@unocss/eslint-plugin": "^66.3.1",
-    "@vitejs/plugin-vue": "^6.0.0",
+    "@subframe7536/eslint-config": "^1.3.1",
+    "@unocss/core": "^66.3.3",
+    "@unocss/eslint-plugin": "^66.3.3",
+    "@unocss/preset-wind3": "^66.3.3",
     "bumpp": "^10.2.0",
-    "eslint": "^9.29.0",
-    "eslint-import-resolver-node": "^0.3.9",
-    "tsdown": "^0.12.8",
-    "typescript": "^5.8.3",
-    "unocss": "^66.3.1",
-    "vite": "^7.0.0",
-    "vitest": "^3.2.4",
-    "vue": "^3.5.17"
+    "bun-types": "^1.2.19",
+    "eslint": "^9.31.0",
+    "tsdown": "^0.13.0",
+    "typescript": "^5.8.3"
   }
 }

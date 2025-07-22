@@ -1,19 +1,36 @@
-import { createGenerator } from 'unocss'
-import { expect, it } from 'vitest'
-import { presetStarter } from '../src'
+import { createGenerator } from '@unocss/core'
+import { presetWind3 } from '@unocss/preset-wind3'
+import { expect, it } from 'bun:test'
 
-it('presetStarter', async () => {
+import { presetCompletion } from '../src'
+
+it('test extractors', async () => {
   const uno = await createGenerator({
-    presets: [presetStarter()],
+    presets: [presetWind3(), presetCompletion()],
   })
-  const presets = uno.config.presets
-  expect(presets).toHaveLength(1)
-
-  const { css } = await uno.generate('col-1 @active:col-2')
-
-  expect(css).toMatchInlineSnapshot(`
-    "/* layer: default */
-    .\\@active\\:col-2.active{width:calc(2 / 12 * 100%);}
-    .col-1{width:calc(1 / 12 * 100%);}"
+  expect(await uno.applyExtractors(`
+    export default function Icon(props: Props) {
+      return <div class={cls(\`i-\${props.name} text-red\`, props.class)} title={props.title || props.name} />
+    }
+  `)).toMatchInlineSnapshot(`
+    Set {
+      "export",
+      "default",
+      "function",
+      "Icon(props",
+      "Props)",
+      "return",
+      "<div",
+      "class=",
+      "cls(",
+      "i-$",
+      "props.name",
+      "text-red",
+      ",",
+      "props.class)",
+      "title=",
+      "props.title",
+      "/>",
+    }
   `)
 })

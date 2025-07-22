@@ -1,24 +1,25 @@
-# unocss-preset-starter [![npm](https://img.shields.io/npm/v/unocss-preset-starter)](https://npmjs.com/package/unocss-preset-starter)
+# unocss-preset-custom-completion [![npm](https://img.shields.io/npm/v/unocss-preset-custom-completion)](https://npmjs.com/package/unocss-preset-custom-completion)
 
-UnoCSS preset quickstart template.
+Custom auto completion preset for UnoCSS
 
 ## Features
 - 🔥 Description of the preset
 
 ## Usage
+
 ```shell
-pnpm i -D unocss-preset-starter unocss
+pnpm i -D unocss-preset-custom-completion unocss
 ```
 
 ```ts
 // uno.config.ts
 import { defineConfig } from 'unocss'
-import { presetStarter } from 'unocss-preset-starter'
+import { presetCompletion } from 'unocss-preset-custom-completion'
 
 export default defineConfig({
   presets: [
     // ...
-    presetStarter(),
+    presetCompletion(),
   ],
 })
 ```
