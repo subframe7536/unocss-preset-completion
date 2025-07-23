@@ -1,7 +1,7 @@
 {
   "name": "unocss-preset-completion",
   "type": "module",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Custom auto completion preset for UnoCSS",
   "author": "subframe7536",
   "license": "MIT",
