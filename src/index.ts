@@ -44,7 +44,7 @@ export function presetCompletion(options: CompletionOptions = {}): Preset {
         const nextSpace = stringContent.indexOf(' ', cursorRel)
         const tokenEndRel = nextSpace === -1 ? stringContent.length : nextSpace
         const extracted = stringContent.slice(tokenStartRel, cursorRel)
-        debug?.(JSON.stringify({ ...literal, cursor, extracted }))
+        debug?.(JSON.stringify({ cursor, extracted, ...literal }))
 
         const start = literal.start + 1 + tokenStartRel
         const end = literal.start + 1 + tokenEndRel
