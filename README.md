@@ -3,7 +3,9 @@
 Custom auto completion preset for UnoCSS
 
 ## Features
-- 🔥 Description of the preset
+
+- Auto completion in functions, like `clsx()`, `cn()` and so on
+- Customizable
 
 ## Usage
 
@@ -26,4 +28,4 @@ export default defineConfig({
 
 ## License
 
-[MIT](./LICENSE) License © 2023 [zyyv](https://github.com/zyyv)
+MIT

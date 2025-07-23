@@ -3,15 +3,15 @@
   "type": "module",
   "version": "0.0.0",
   "description": "Custom auto completion preset for UnoCSS",
-  "author": "unpreset <https://github.com/unpreset>",
+  "author": "subframe7536",
   "license": "MIT",
-  "homepage": "https://github.com/unpreset/unocss-preset-custom-completion#readme",
+  "homepage": "https://github.com/subframe7536/unocss-preset-custom-completion#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/unpreset/unocss-preset-custom-completion.git"
+    "url": "git+https://github.com/subframe7536/unocss-preset-custom-completion.git"
   },
   "bugs": {
-    "url": "https://github.com/unpreset/unocss-preset-custom-completion/issues"
+    "url": "https://github.com/subframe7536/unocss-preset-custom-completion/issues"
   },
   "keywords": [
     "unocss",
@@ -40,6 +40,10 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
   "scripts": {
     "build": "tsdown",
     "dev": "tsdown --watch",
