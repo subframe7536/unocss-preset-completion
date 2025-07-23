@@ -1,8 +1,6 @@
 /* eslint-disable no-cond-assign */
 import type { AutoCompleteExtractor, AutoCompleteExtractorResult, Preset } from '@unocss/core'
 
-import { appendFileSync } from 'node:fs'
-
 export interface CompletionOptions {
   /**
    * Array of function names that trigger class name autocomplete suggestions.
@@ -11,75 +9,113 @@ export interface CompletionOptions {
   autocompleteFunctions?: string[]
 }
 
-function log(...args: any): void {
-  // const p = '/Users/subf/Developer/front/unocss-preset-custom-completion/uno.log'
-  const p = 'E:\\front\\unocss-preset-custom-completion\\uno.log'
-  appendFileSync(p, `${JSON.stringify(args)}\n`, 'utf-8')
+interface FunctionCall {
+  functionName: string
+  argsStart: number
+  argsEnd: number
+  argsContent: string
+}
+
+function scanForFunctionCalls(content: string, autocompleteFunctions: string[]): FunctionCall[] {
+  const results: FunctionCall[] = []
+  for (const fn of autocompleteFunctions) {
+    let idx = 0
+    while ((idx = content.indexOf(`${fn}(`, idx)) !== -1) {
+      const functionName = fn
+      const argsStart = idx + fn.length + 1
+      let parenCount = 1
+      let i = argsStart
+      while (i < content.length && parenCount > 0) {
+        if (content[i] === '(') {
+          parenCount++
+        } else if (content[i] === ')') {
+          parenCount--
+        }
+        i++
+      }
+      const argsEnd = i - 1
+      const argsContent = content.slice(argsStart, argsEnd)
+      results.push({ functionName, argsStart, argsEnd, argsContent })
+      idx = argsEnd + 1
+    }
+  }
+  return results
+}
+
+interface StringLiteral {
+  start: number
+  end: number
+  content: string
+}
+function scanStringLiterals(argsContent: string, argsStart: number): StringLiteral[] {
+  const literals: StringLiteral[] = []
+  let i = 0
+  while (i < argsContent.length) {
+    const quote = argsContent[i]
+    if (quote === '"' || quote === '\'' || quote === '`') {
+      let j = i + 1
+      let escaped = false
+      while (j < argsContent.length) {
+        if (!escaped && argsContent[j] === quote) {
+          break
+        }
+        escaped = argsContent[j] === '\\' && !escaped
+        j++
+      }
+      if (j < argsContent.length) {
+        literals.push({
+          start: argsStart + i,
+          end: argsStart + j,
+          content: argsContent.slice(i + 1, j),
+        })
+        i = j + 1
+      } else {
+        i++
+      }
+    } else {
+      i++
+    }
+  }
+  return literals
 }
 
 export function presetCompletion(options: CompletionOptions = {}): Preset {
-  const { autocompleteFunctions = ['clsx', 'cls'] } = options
+  const { autocompleteFunctions = ['clsx', 'cn', 'classnames', 'cls'] } = options
 
-  // todo)) use code scan instead of regexp to extract class
-  // eslint-disable-next-line regexp/no-unused-capturing-group, regexp/no-useless-assertions
-  const stringRegex = /(['"`])((?:\\1|(?!$\{)[^\\1])*?)\1/g
-  // Regular expression to match function calls with arguments
-  const functionPattern = new RegExp(
-    `(${autocompleteFunctions.join('|')})\\s*\\(([^)]*)`,
-    'g',
-  )
-
+  // Use code scan instead of regexp to extract class
   const extractor: AutoCompleteExtractor = {
     name: 'class-functions',
     extract({ content, cursor }): AutoCompleteExtractorResult | null {
-      let match
-      functionPattern.lastIndex = 0
-      log('Matching function')
-
-      while ((match = functionPattern.exec(content)) !== null) {
-        const functionStart = match.index
-        const argsStart = functionStart + match[0].indexOf('(') + 1
-        const argsEnd = functionStart + match[0].length - 1
-        const argsContent = match[2]
-        log('Checking cursor')
-        if (cursor < argsStart || cursor > argsEnd) {
-          log(`Outside function, start=${argsStart}, cursor=${cursor}, end=${argsEnd}`)
+      const calls = scanForFunctionCalls(content, autocompleteFunctions)
+      for (const call of calls) {
+        if (cursor < call.argsStart || cursor > call.argsEnd) {
           continue
         }
-        log(`Inside function, code=${argsContent}, regexp=${stringRegex.source}`)
-        // Find the string literal containing the cursor
-        let stringMatch
-        stringRegex.lastIndex = 0
-        while ((stringMatch = stringRegex.exec(argsContent)) !== null) {
-          const stringStart = argsStart + stringMatch.index
-          const stringEnd = stringStart + stringMatch[0].length
-          log('Matched strings', { stringStart, cursor, stringEnd })
-          if (cursor > stringStart && cursor < stringEnd) {
-            const stringContent = stringMatch[0].slice(1, -1)
-            const cursorRel = cursor - (stringStart + 1)
 
+        const literals = scanStringLiterals(call.argsContent, call.argsStart)
+        for (const literal of literals) {
+          if (cursor >= literal.start && cursor <= literal.end) {
+            const stringContent = literal.content
+            const cursorRel = cursor - (literal.start + 1)
             // Find token boundaries
             const lastSpace = stringContent.lastIndexOf(' ', cursorRel - 1)
             const tokenStartRel = lastSpace === -1 ? 0 : lastSpace + 1
             const nextSpace = stringContent.indexOf(' ', cursorRel)
             const tokenEndRel = nextSpace === -1 ? stringContent.length : nextSpace
-
             const extracted = stringContent.slice(tokenStartRel, cursorRel)
-            log(`Extract, content=${extracted}`)
-            log()
 
-            const start = stringStart + 1 + tokenStartRel
-            const end = stringStart + 1 + tokenEndRel
+            const start = literal.start + 1 + tokenStartRel
+            const end = literal.start + 1 + tokenEndRel
             return {
               extracted,
-              resolveReplacement: (suggestion: string) => {
-                return { start, end, replacement: suggestion }
-              },
+              resolveReplacement: (suggestion: string) => ({
+                start,
+                end,
+                replacement: suggestion,
+              }),
             }
           }
         }
-        log('No args match')
-        log()
       }
       return null
     },

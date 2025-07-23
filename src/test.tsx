@@ -6,7 +6,12 @@ export function Test(_props: Props): any {
   return <div className="" />
 }
 export function Icon(props: Props): any {
-  return <div className={cls(`i-${props.name} text-red `, props.name && 't', props.class)} title={props.name} />
+  return (
+    <div
+      className={cls(`i-${props.name} text-red`, props.name && '', props.class)}
+      title={props.name}
+    />
+  )
 }
 
 export function Test1(props: Props): any {
