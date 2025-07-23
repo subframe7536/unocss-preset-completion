@@ -1,15 +1,18 @@
-// @ts-expect-error fxxk
-export default function Test(_props: Props): any {
-  // @ts-expect-error fxxk
-  return <div class="" />
+interface Props {
+  name: string
+  class: string
 }
-// @ts-expect-error fxxk
-export default function Icon(props: Props): any {
-  // @ts-expect-error fxxk
-  return <div class={cls(`i-${props.name} text-red `, props.solid && 't', props.class)} title={props.title || props.name} />
+export function Test(_props: Props): any {
+  return <div className="" />
 }
-// @ts-expect-error fxxk
-export default function Test1(props: Props): any {
-  // @ts-expect-error fxxk
-  return <div class={cls('', a ? (b > 0 ? 'foo' : 'bar') : 'baz', props.class)} />
+export function Icon(props: Props): any {
+  return <div className={cls(`i-${props.name} text-red `, props.name && 't', props.class)} title={props.name} />
+}
+
+export function Test1(props: Props): any {
+  return <div className={cls('', 1 ? (2 > 0 ? 'foo' : 'bar') : 'baz', props.class)} />
+}
+
+function cls(...args: any): string {
+  return args
 }
