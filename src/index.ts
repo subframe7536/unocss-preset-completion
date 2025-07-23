@@ -8,6 +8,7 @@ export interface CompletionOptions {
    * @default ['clsx', 'cn', 'classnames', 'cls']
    */
   autocompleteFunctions?: string[]
+  debug?: (msg: string) => void
 }
 
 /**
@@ -15,7 +16,10 @@ export interface CompletionOptions {
  * @param options - Configuration options for the preset.
  */
 export function presetCompletion(options: CompletionOptions = {}): Preset {
-  const { autocompleteFunctions = ['clsx', 'cn', 'classnames', 'cls'] } = options
+  const {
+    autocompleteFunctions = ['clsx', 'cn', 'classnames', 'cls'],
+    debug,
+  } = options
 
   // Use code scan instead of regexp to extract class
   const extractor: AutoCompleteExtractor = {
@@ -23,6 +27,7 @@ export function presetCompletion(options: CompletionOptions = {}): Preset {
     extract({ content, cursor }): AutoCompleteExtractorResult | null {
       const call = scanForFunctionCall(content, cursor, autocompleteFunctions)
       if (!call) {
+        debug?.(`No functions called. content=${content}, cursor=${cursor}`)
         return null
       }
 
@@ -39,6 +44,7 @@ export function presetCompletion(options: CompletionOptions = {}): Preset {
         const nextSpace = stringContent.indexOf(' ', cursorRel)
         const tokenEndRel = nextSpace === -1 ? stringContent.length : nextSpace
         const extracted = stringContent.slice(tokenStartRel, cursorRel)
+        debug?.(JSON.stringify({ ...literal, cursor, extracted }))
 
         const start = literal.start + 1 + tokenStartRel
         const end = literal.start + 1 + tokenEndRel
@@ -51,6 +57,7 @@ export function presetCompletion(options: CompletionOptions = {}): Preset {
           }),
         }
       }
+      debug?.('No args inside function')
       return null
     },
   }

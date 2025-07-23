@@ -18,6 +18,17 @@ export function Test1(props: Props): any {
   return <div className={cls('', 1 ? (2 > 0 ? 'foo' : 'bar') : 'baz', props.class)} />
 }
 
+export function Test2(props: Props): any {
+  return (
+    <div
+      className={cls(
+        'pointer-events-none b-(1 solid #555) block size-5 translate-x-0 rounded-full shadow-lg ring-0 transition-transform data-[checked]:translate-x-5',
+        props.class,
+      )}
+    />
+  )
+}
+
 function cls(...args: any): string {
   return args
 }

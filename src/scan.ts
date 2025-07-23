@@ -4,59 +4,87 @@ interface FunctionCall {
   argsEnd: number
   argsContent: string
 }
+
 /**
- * Scans the content to find a function call at the cursor position.
+ * Scans the content to find the innermost function call at the cursor position,
+ * supporting function calls that span multiple lines.
+ *
  * @param content - The full content of the file.
  * @param cursor - The current cursor position.
  * @param autocompleteFunctions - List of function names to look for.
  * @returns A `FunctionCall` object if a matching function call is found, otherwise `null`.
  */
-export function scanForFunctionCall(content: string, cursor: number, autocompleteFunctions: string[]): FunctionCall | null {
-  // Find the line containing the cursor
-  const lineStart = content.lastIndexOf('\n', cursor) + 1
-  const lineEnd = content.indexOf('\n', cursor)
-  const line = content.slice(lineStart, lineEnd === -1 ? undefined : lineEnd)
+export function scanForFunctionCall(
+  content: string,
+  cursor: number,
+  autocompleteFunctions: string[],
+): FunctionCall | null {
+  let bestMatch: FunctionCall | null = null
 
-  // Check each function name
+  // Check each function name provided
   for (const fn of autocompleteFunctions) {
-    // Find function call in current line that contains the cursor
-    let idx = 0
-    // eslint-disable-next-line no-cond-assign
-    while ((idx = line.indexOf(`${fn}(`, idx)) !== -1) {
-      // Calculate global position
-      const fnStart = lineStart + idx
-      const argsStart = fnStart + fn.length + 1
+    let searchPos = cursor
 
-      // Ensure cursor is after function name
+    // Continuously search backwards from the cursor for the start of a function call
+
+    while (true) {
+      const fnCallStart = content.lastIndexOf(`${fn}(`, searchPos)
+
+      // If no more occurrences are found before the search position, stop for this function.
+      if (fnCallStart === -1) {
+        break
+      }
+
+      const argsStart = fnCallStart + fn.length + 1
+
+      // To be a candidate, the cursor must be located after the opening parenthesis.
       if (cursor < argsStart) {
-        idx = idx + fn.length + 1
+        // This function call starts after the cursor, so it's not the one we're inside.
+        // Continue searching from an earlier position.
+        searchPos = fnCallStart - 1
         continue
       }
 
-      // Find matching closing parenthesis
+      // Now, scan forward from the start of the arguments to find the matching closing parenthesis.
+      // This correctly handles arguments that span multiple lines.
       let parenCount = 1
-      let i = argsStart - lineStart
-      while (i < line.length && parenCount > 0) {
-        if (line[i] === '(') {
+      let i = argsStart
+      while (i < content.length && parenCount > 0) {
+        if (content[i] === '(') {
           parenCount++
-        } else if (line[i] === ')') {
+        } else if (content[i] === ')') {
           parenCount--
         }
         i++
       }
 
-      const argsEnd = lineStart + i - 1
+      // If we successfully found the closing parenthesis (parenCount is 0)
+      if (parenCount === 0) {
+        const argsEnd = i - 1 // The position of the closing ')'
 
-      // Check if cursor is within arguments
-      if (cursor >= argsStart && cursor <= argsEnd) {
-        const argsContent = content.slice(argsStart, argsEnd)
-        return { functionName: fn, argsStart, argsEnd, argsContent }
+        // Check if the cursor is within the argument bounds (from just after '(' up to ')')
+        if (cursor >= argsStart && cursor <= argsEnd) {
+          const currentMatch: FunctionCall = {
+            functionName: fn,
+            argsStart,
+            argsEnd,
+            argsContent: content.slice(argsStart, argsEnd),
+          }
+
+          // We want the most tightly nested function call. The best match is the one
+          // whose arguments start at the highest index (closest to the cursor).
+          if (!bestMatch || currentMatch.argsStart > bestMatch.argsStart) {
+            bestMatch = currentMatch
+          }
+        }
       }
 
-      idx = i
+      // Move the search position backward to find other potential (enclosing) parent calls
+      searchPos = fnCallStart - 1
     }
   }
-  return null
+
+  return bestMatch
 }
 interface StringLiteral {
   start: number

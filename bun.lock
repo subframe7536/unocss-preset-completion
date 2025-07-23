@@ -8,6 +8,7 @@
         "@unocss/core": "^66.3.3",
         "@unocss/eslint-plugin": "^66.3.3",
         "@unocss/preset-wind3": "^66.3.3",
+        "@unocss/transformer-variant-group": "^66.3.3",
         "bumpp": "^10.2.0",
         "bun-types": "^1.2.19",
         "eslint": "^9.31.0",
@@ -172,6 +173,8 @@
     "@unocss/preset-wind3": ["@unocss/preset-wind3@66.3.3", "https://registry.npmmirror.com/@unocss/preset-wind3/-/preset-wind3-66.3.3.tgz", { "dependencies": { "@unocss/core": "66.3.3", "@unocss/preset-mini": "66.3.3", "@unocss/rule-utils": "66.3.3" } }, "sha512-iXmjvPqvmPTo4z7epQDqHxzlGRsbLJEgfETqTrRJeagvFG7Gs+ajS8cQhbf6wL01dSRHjvhVXi3MsIvqfHHXOw=="],
 
     "@unocss/rule-utils": ["@unocss/rule-utils@66.3.3", "https://registry.npmmirror.com/@unocss/rule-utils/-/rule-utils-66.3.3.tgz", { "dependencies": { "@unocss/core": "^66.3.3", "magic-string": "^0.30.17" } }, "sha512-QKgVGV5nRRnK44/reUKFLAc5UGyl98vz3hrfk8JI8pVza58vmQWTdAB2rIpNJ5a5j+EkWfDOUlGQaOrIeYGLdg=="],
+
+    "@unocss/transformer-variant-group": ["@unocss/transformer-variant-group@66.3.3", "https://registry.npmmirror.com/@unocss/transformer-variant-group/-/transformer-variant-group-66.3.3.tgz", { "dependencies": { "@unocss/core": "66.3.3" } }, "sha512-uhK81pbJfXJFYaXxOoIFVEG8/Kx1iaAkTwRB6c+WNUfl9GiKyYQcrI7bETgCPPbg230Z68jVICBgBATeLJ31vQ=="],
 
     "acorn": ["acorn@8.15.0", "https://registry.npmmirror.com/acorn/-/acorn-8.15.0.tgz", { "bin": { "acorn": "bin/acorn" } }, "sha512-NZyJarBfL7nWwIq+FDL6Zp/yHEhePMNnnJ0y3qfieCrmNvYct8uvtiV41UvlSe6apAfk0fY1FbWx+NwfmpvtTg=="],
 
