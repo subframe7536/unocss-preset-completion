@@ -1,23 +1,23 @@
 {
-  "name": "unocss-preset-custom-completion",
+  "name": "unocss-preset-completion",
   "type": "module",
   "version": "0.0.0",
   "description": "Custom auto completion preset for UnoCSS",
   "author": "subframe7536",
   "license": "MIT",
-  "homepage": "https://github.com/subframe7536/unocss-preset-custom-completion#readme",
+  "homepage": "https://github.com/subframe7536/unocss-preset-completion#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/subframe7536/unocss-preset-custom-completion.git"
+    "url": "git+https://github.com/subframe7536/unocss-preset-completion.git"
   },
   "bugs": {
-    "url": "https://github.com/subframe7536/unocss-preset-custom-completion/issues"
+    "url": "https://github.com/subframe7536/unocss-preset-completion/issues"
   },
   "keywords": [
     "unocss",
     "unpreset",
     "unocss-preset",
-    "unocss-preset-custom-completion"
+    "unocss-preset-completion"
   ],
   "sideEffects": false,
   "exports": {
