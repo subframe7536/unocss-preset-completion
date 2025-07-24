@@ -15,7 +15,7 @@ export function Icon(props: Props): any {
 }
 
 export function Test1(props: Props): any {
-  return <div className={cls('', 1 ? (2 > 0 ? 'foo' : 'bar') : 'baz', props.class)} />
+  return <div className={cls(`accent-amber`, 1 ? (2 > 0 ? 'flex' : 'flex-col') : 'transition-all', props.class)} />
 }
 
 export function Test2(props: Props): any {

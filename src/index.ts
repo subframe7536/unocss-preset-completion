@@ -27,7 +27,7 @@ export function presetCompletion(options: CompletionOptions = {}): Preset {
     extract({ content, cursor }): AutoCompleteExtractorResult | null {
       const call = scanForFunctionCall(content, cursor, autocompleteFunctions)
       if (!call) {
-        debug?.(`No functions called. content=${content}, cursor=${cursor}`)
+        debug?.(`No functions called. cursor=${cursor}, fn=[${autocompleteFunctions}]`)
         return null
       }
 
@@ -44,7 +44,7 @@ export function presetCompletion(options: CompletionOptions = {}): Preset {
         const nextSpace = stringContent.indexOf(' ', cursorRel)
         const tokenEndRel = nextSpace === -1 ? stringContent.length : nextSpace
         const extracted = stringContent.slice(tokenStartRel, cursorRel)
-        debug?.(JSON.stringify({ cursor, extracted, ...literal }))
+        debug?.(JSON.stringify({ cursor, extracted, fn: call.fnName, ...literal }))
 
         const start = literal.start + 1 + tokenStartRel
         const end = literal.start + 1 + tokenEndRel
@@ -57,7 +57,7 @@ export function presetCompletion(options: CompletionOptions = {}): Preset {
           }),
         }
       }
-      debug?.('No args inside function')
+      debug?.(`No args inside function ${call.fnName}()`)
       return null
     },
   }

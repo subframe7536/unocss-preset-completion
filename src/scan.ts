@@ -1,7 +1,7 @@
+/* eslint-disable no-cond-assign */
 interface FunctionCall {
-  functionName: string
+  fnName: string
   argsStart: number
-  argsEnd: number
   argsContent: string
 }
 
@@ -19,72 +19,64 @@ export function scanForFunctionCall(
   cursor: number,
   autocompleteFunctions: string[],
 ): FunctionCall | null {
-  let bestMatch: FunctionCall | null = null
+  // Build regex to match any of the given function names followed by '('
+  const fnNamePattern = autocompleteFunctions.map(fn =>
+    fn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), // escape special regex chars
+  ).join('|')
 
-  // Check each function name provided
-  for (const fn of autocompleteFunctions) {
-    let searchPos = cursor
+  const regex = new RegExp(`(${fnNamePattern})\\s*\\(`, 'g')
+  let state: { fnName: string, start: number, argsStart: number } | undefined
 
-    // Continuously search backwards from the cursor for the start of a function call
+  let arr: RegExpExecArray | null
+  while ((arr = regex.exec(content)) !== null) {
+    const fnName = arr[1]
+    const start = arr.index
+    const argsStart = start + fnName.length + 1
 
-    while (true) {
-      const fnCallStart = content.lastIndexOf(`${fn}(`, searchPos)
+    if (argsStart > cursor) {
+      break
+    }
 
-      // If no more occurrences are found before the search position, stop for this function.
-      if (fnCallStart === -1) {
-        break
-      }
-
-      const argsStart = fnCallStart + fn.length + 1
-
-      // To be a candidate, the cursor must be located after the opening parenthesis.
-      if (cursor < argsStart) {
-        // This function call starts after the cursor, so it's not the one we're inside.
-        // Continue searching from an earlier position.
-        searchPos = fnCallStart - 1
-        continue
-      }
-
-      // Now, scan forward from the start of the arguments to find the matching closing parenthesis.
-      // This correctly handles arguments that span multiple lines.
-      let parenCount = 1
-      let i = argsStart
-      while (i < content.length && parenCount > 0) {
-        if (content[i] === '(') {
-          parenCount++
-        } else if (content[i] === ')') {
-          parenCount--
-        }
-        i++
-      }
-
-      // If we successfully found the closing parenthesis (parenCount is 0)
-      if (parenCount === 0) {
-        const argsEnd = i - 1 // The position of the closing ')'
-
-        // Check if the cursor is within the argument bounds (from just after '(' up to ')')
-        if (cursor >= argsStart && cursor <= argsEnd) {
-          const currentMatch: FunctionCall = {
-            functionName: fn,
-            argsStart,
-            argsEnd,
-            argsContent: content.slice(argsStart, argsEnd),
-          }
-
-          // We want the most tightly nested function call. The best match is the one
-          // whose arguments start at the highest index (closest to the cursor).
-          if (!bestMatch || currentMatch.argsStart > bestMatch.argsStart) {
-            bestMatch = currentMatch
-          }
-        }
-      }
-
-      // Move the search position backward to find other potential (enclosing) parent calls
-      searchPos = fnCallStart - 1
+    // Only consider functions whose opening '(' is before the cursor
+    if (!state || state.start < start) {
+      state = { fnName, start, argsStart }
     }
   }
 
-  return bestMatch
+  if (!state) {
+    return null
+  }
+
+  const { fnName, argsStart } = state
+
+  // Find matching closing parenthesis with proper nesting
+  let parenCount = 1
+  let i = argsStart
+
+  while (i < content.length && parenCount > 0) {
+    const char = content[i]
+    if (char === '(') {
+      parenCount++
+    } else if (char === ')') {
+      parenCount--
+    }
+    i++
+  }
+
+  if (parenCount === 0) {
+    const argsEnd = i - 1
+
+    // Confirm that the cursor is within the argument bounds
+    if (cursor >= argsStart && cursor <= argsEnd) {
+      return {
+        fnName,
+        argsStart,
+        argsContent: content.slice(argsStart, argsEnd),
+      }
+    }
+  }
+
+  return null
 }
 interface StringLiteral {
   start: number
