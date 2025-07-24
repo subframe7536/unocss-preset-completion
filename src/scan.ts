@@ -83,42 +83,30 @@ interface StringLiteral {
   end: number
   content: string
 }
+
 /**
- * Scans the arguments of a function call to extract string literals.
+ * Scans the arguments of a function call to extract string literals using a regular expression.
  * @param argsContent - The content of the arguments.
  * @param argsStart - The starting position of the arguments in the content.
  * @returns An array of `StringLiteral` objects representing the string literals found.
  */
 export function scanStringLiterals(argsContent: string, argsStart: number): StringLiteral[] {
   const literals: StringLiteral[] = []
-  let i = 0
-  while (i < argsContent.length) {
-    const quote = argsContent[i]
-    // Check for string literal start
-    if (quote === '"' || quote === '\'' || quote === '`') {
-      let j = i + 1
-      let escaped = false
-      // Find the closing quote
-      while (j < argsContent.length) {
-        if (!escaped && argsContent[j] === quote) {
-          break
-        }
-        escaped = argsContent[j] === '\\' && !escaped
-        j++
-      }
-      if (j < argsContent.length) {
-        literals.push({
-          start: argsStart + i,
-          end: argsStart + j,
-          content: argsContent.slice(i + 1, j),
-        })
-        i = j + 1
-      } else {
-        i++
-      }
-    } else {
-      i++
-    }
+  // This regex is compatible with older JS environments. It mimics the 's' (dotAll)
+  // flag by using `[\s\S]` to match any character, including newlines, after an escape character.
+  // eslint-disable-next-line regexp/no-unused-capturing-group
+  const stringLiteralRegex = /("(?:\\[\s\S]|[^"\\])*")|('(?:\\[\s\S]|[^'\\])*')|(`(?:\\[\s\S]|[^`\\])*`)/g
+  let match: RegExpExecArray | null
+
+  while ((match = stringLiteralRegex.exec(argsContent)) !== null) {
+    const fullMatch = match[0]
+
+    literals.push({
+      start: argsStart + match.index,
+      end: argsStart + match.index + fullMatch.length - 1,
+      content: fullMatch.slice(1, -1),
+    })
   }
+
   return literals
 }
