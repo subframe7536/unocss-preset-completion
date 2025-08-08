@@ -5,7 +5,7 @@ import { scanForFunctionCall, scanStringLiterals } from './scan'
 export interface CompletionOptions {
   /**
    * Array of function names that trigger class name autocomplete suggestions.
-   * @default ['clsx', 'cn', 'classnames', 'cls']
+   * @default ['clsx', 'cn', 'classnames', 'cls', 'cva', 'tv']
    */
   autocompleteFunctions?: string[]
   debug?: (msg: string) => void
