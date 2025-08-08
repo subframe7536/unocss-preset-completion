@@ -29,6 +29,20 @@ export function Test2(props: Props): any {
   )
 }
 
+export function Test3(props: Props): any {
+  return (
+    <div
+      className={cls('accent-amber', {
+        variant: {
+          size: {
+            small: `text-black/40 ${props.class}`,
+          },
+        },
+      })}
+    />
+  )
+}
+
 function cls(...args: any): string {
   return args
 }
