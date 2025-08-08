@@ -11,7 +11,7 @@ export interface CompletionOptions {
   debug?: (msg: string) => void
 }
 
-export const DEFAULT_FUNCTIONS = ['clsx', 'cn', 'classnames', 'cls']
+export const DEFAULT_FUNCTIONS = ['clsx', 'cn', 'classnames', 'cls', 'cva', 'tv']
 
 /**
  * Creates a preset for UnoCSS that add autocomplete support in functions.
