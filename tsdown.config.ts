@@ -4,5 +4,5 @@ export default defineConfig({
   entry: [
     './src/index.ts',
   ],
-  external: ['unocss'],
+  external: ['unocss', '@unocss/core'],
 })

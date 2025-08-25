@@ -6,13 +6,13 @@ import { tmpdir } from 'node:os'
 import { presetWind3 } from '@unocss/preset-wind3'
 import variantGroup from '@unocss/transformer-variant-group'
 
-import { presetCompletion } from './src'
+import { presetClassCompletion } from './src'
 
 const path = `${tmpdir()}/uno.log`
 export default {
   presets: [
     presetWind3(),
-    presetCompletion({
+    presetClassCompletion({
       debug(msg) {
         appendFileSync(path, `${msg}\n`, 'utf-8')
       },

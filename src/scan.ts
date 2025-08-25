@@ -1,3 +1,9 @@
+export interface StringPosition {
+  start: number
+  end: number
+  content: string
+}
+
 /* eslint-disable no-cond-assign */
 interface FunctionCall {
   fnName: string
@@ -6,6 +12,13 @@ interface FunctionCall {
 }
 
 const escapeRegex = /[.*+?^${}()|[\]\\]/g
+
+export function mergeOptionalRegexText(names: string[]): string {
+  return names.map(fn =>
+    fn.replace(escapeRegex, '\\$&'), // escape special regex chars
+  ).join('|')
+}
+
 /**
  * Scans the content to find the innermost function call at the cursor position,
  * supporting function calls that span multiple lines.
@@ -21,11 +34,7 @@ export function scanForFunctionCall(
   autocompleteFunctions: string[],
 ): FunctionCall | null {
   // Build regex to match any of the given function names followed by '('
-  const fnNamePattern = autocompleteFunctions.map(fn =>
-    fn.replace(escapeRegex, '\\$&'), // escape special regex chars
-  ).join('|')
-
-  const regex = new RegExp(`(${fnNamePattern})\\s*\\(`, 'g')
+  const regex = new RegExp(`(${mergeOptionalRegexText(autocompleteFunctions)})\\s*\\(`, 'g')
   let state: { fnName: string, start: number, argsStart: number } | undefined
 
   let arr: RegExpExecArray | null
@@ -79,11 +88,6 @@ export function scanForFunctionCall(
 
   return null
 }
-interface StringLiteral {
-  start: number
-  end: number
-  content: string
-}
 
 // This regex is compatible with older JS environments. It mimics the 's' (dotAll)
 // flag by using `[\s\S]` to match any character, including newlines, after an escape character.
@@ -96,8 +100,8 @@ const stringLiteralRegex = /("(?:\\[\s\S]|[^"\\])*")|('(?:\\[\s\S]|[^'\\])*')|(`
  * @param argsStart - The starting position of the arguments in the content.
  * @returns An array of `StringLiteral` objects representing the string literals found.
  */
-export function scanStringLiterals(argsContent: string, argsStart: number): StringLiteral[] {
-  const literals: StringLiteral[] = []
+export function scanStringLiterals(argsContent: string, argsStart: number): StringPosition[] {
+  const literals: StringPosition[] = []
   let match: RegExpExecArray | null
 
   while ((match = stringLiteralRegex.exec(argsContent)) !== null) {
@@ -111,4 +115,53 @@ export function scanStringLiterals(argsContent: string, argsStart: number): Stri
   }
 
   return literals
+}
+
+/**
+ * Scans the content to find the innermost function call at the cursor position,
+ * supporting function calls that span multiple lines.
+ *
+ * @param content - The full content of the file.
+ * @param cursor - The current cursor position.
+ * @param directives - List of directive names to look for.
+ * @returns A `FunctionCall` object if a matching function call is found, otherwise `null`.
+ */
+export function scanForDirectives(
+  content: string,
+  cursor: number,
+  directives: string[],
+): StringPosition & { directiveName: string } | null {
+  // Build regex to match any of the given directive names followed by ':'
+  const regex = new RegExp(`(${mergeOptionalRegexText(directives)})\\s*:\\s*([^;]+);`, 'g')
+  let state: {
+    directiveName: string
+    start: number
+    argsStart: number
+    argsContent: string
+  } | undefined
+
+  let arr: RegExpExecArray | null
+  while ((arr = regex.exec(content)) !== null) {
+    const fnName = arr[1]
+    const start = arr.index
+    const argsStart = start + fnName.length + 1
+
+    if (argsStart > cursor) {
+      break
+    }
+
+    if (!state || state.start < start) {
+      state = { directiveName: fnName, start, argsStart, argsContent: arr[2] }
+    }
+  }
+  if (!state) {
+    return null
+  }
+
+  return {
+    directiveName: state.directiveName,
+    start: state.argsStart,
+    end: state.argsStart + state.argsContent.length,
+    content: state.argsContent,
+  }
 }
