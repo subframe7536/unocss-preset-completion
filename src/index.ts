@@ -42,9 +42,19 @@ export function presetCompletion(options: CompletionOptions = {}): Preset {
         const cursorRel = cursor - (literal.start + 1)
         // Find token boundaries
         const lastSpace = stringContent.lastIndexOf(' ', cursorRel - 1)
-        const tokenStartRel = lastSpace === -1 ? 0 : lastSpace + 1
+        let tokenStartRel = lastSpace === -1 ? 0 : lastSpace + 1
+        const leftParen = stringContent.lastIndexOf('(', cursorRel - 1)
+        if (leftParen !== -1 && leftParen > tokenStartRel) {
+          tokenStartRel = leftParen + 1
+        }
+
         const nextSpace = stringContent.indexOf(' ', cursorRel)
-        const tokenEndRel = nextSpace === -1 ? stringContent.length : nextSpace
+        let tokenEndRel = nextSpace === -1 ? stringContent.length : nextSpace
+        let rightParen = stringContent.indexOf(')', cursorRel)
+        if (rightParen === -1 || rightParen < tokenEndRel) {
+          tokenEndRel = rightParen
+        }
+
         const extracted = stringContent.slice(tokenStartRel, cursorRel)
         debug?.(JSON.stringify({ cursor, extracted, fn: call.fnName, ...literal }))
 
