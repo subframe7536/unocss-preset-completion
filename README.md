@@ -5,7 +5,8 @@ Custom auto completion preset for UnoCSS
 ## Features
 
 - Auto completion support in functions, like `clsx()`, `cn()` and so on
-- Customizable auto completion functions
+- Auto completion support in css directives, like `--at-apply`, `--uno` and so on
+- Customizable
 
 ## Install
 
@@ -27,17 +28,18 @@ bun i -D unocss-preset-completion unocss
 ```ts
 // uno.config.ts
 import { defineConfig } from 'unocss'
-import { presetCompletion } from 'unocss-preset-completion'
+import { presetClassCompletion, presetDirectiveCompletion } from 'unocss-preset-completion'
 
 export default defineConfig({
   presets: [
     // ...
-    presetCompletion(),
+    presetClassCompletion(),
+    presetDirectiveCompletion(),
   ],
 })
 ```
 
-### Custom Class Name
+### Customization
 
 ```ts
 // uno.config.ts
@@ -49,6 +51,9 @@ export default defineConfig({
     // ...
     presetCompletion({
       autocompleteFunctions: ['youCustomFunction']
+    }),
+    presetDirectiveCompletion({
+      directives: ['--your-directive']
     }),
   ],
 })
