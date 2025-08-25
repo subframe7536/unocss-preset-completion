@@ -1,0 +1,9 @@
+.test-variant-group {
+  --uno: text-red hover:(bg-blue text-sm);
+}
+.test-multiline {
+  --uno: text-red hover:(
+    bg-blue
+    text-sm
+  );
+}

@@ -4,9 +4,10 @@ import { appendFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 
 import { presetWind3 } from '@unocss/preset-wind3'
+import directives from '@unocss/transformer-directives'
 import variantGroup from '@unocss/transformer-variant-group'
 
-import { presetClassCompletion } from './src'
+import { presetClassCompletion, presetDirectivesCompletion } from './src'
 
 const path = `${tmpdir()}/uno.log`
 export default {
@@ -17,8 +18,10 @@ export default {
         appendFileSync(path, `${msg}\n`, 'utf-8')
       },
     }),
+    presetDirectivesCompletion(),
   ],
   transformers: [
     variantGroup(),
+    directives(),
   ],
 } satisfies UserConfig

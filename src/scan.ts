@@ -132,7 +132,7 @@ export function scanForDirectives(
   directives: string[],
 ): StringPosition & { directiveName: string } | null {
   // Build regex to match any of the given directive names followed by ':'
-  const regex = new RegExp(`(${mergeOptionalRegexText(directives)})\\s*:\\s*([^;]+);`, 'g')
+  const regex = new RegExp(`(${mergeOptionalRegexText(directives)})\\s*:\\s*([^;]+?);`, 'g')
   let state: {
     directiveName: string
     start: number
@@ -158,10 +158,13 @@ export function scanForDirectives(
     return null
   }
 
+  // Adjust argsContent to handle multiline content manually
+  const argsContent = state.argsContent.replace(/[\r\n]+/g, ' ') // Replace newlines with spaces for compatibility
+
   return {
     directiveName: state.directiveName,
     start: state.argsStart,
-    end: state.argsStart + state.argsContent.length,
-    content: state.argsContent,
+    end: state.argsStart + argsContent.length,
+    content: argsContent,
   }
 }
