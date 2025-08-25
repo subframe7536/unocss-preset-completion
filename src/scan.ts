@@ -5,6 +5,7 @@ interface FunctionCall {
   argsContent: string
 }
 
+const escapeRegex = /[.*+?^${}()|[\]\\]/g
 /**
  * Scans the content to find the innermost function call at the cursor position,
  * supporting function calls that span multiple lines.
@@ -21,7 +22,7 @@ export function scanForFunctionCall(
 ): FunctionCall | null {
   // Build regex to match any of the given function names followed by '('
   const fnNamePattern = autocompleteFunctions.map(fn =>
-    fn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), // escape special regex chars
+    fn.replace(escapeRegex, '\\$&'), // escape special regex chars
   ).join('|')
 
   const regex = new RegExp(`(${fnNamePattern})\\s*\\(`, 'g')
@@ -84,6 +85,11 @@ interface StringLiteral {
   content: string
 }
 
+// This regex is compatible with older JS environments. It mimics the 's' (dotAll)
+// flag by using `[\s\S]` to match any character, including newlines, after an escape character.
+// eslint-disable-next-line regexp/no-unused-capturing-group
+const stringLiteralRegex = /("(?:\\[\s\S]|[^"\\])*")|('(?:\\[\s\S]|[^'\\])*')|(`(?:\\[\s\S]|[^`\\])*`)/g
+
 /**
  * Scans the arguments of a function call to extract string literals using a regular expression.
  * @param argsContent - The content of the arguments.
@@ -92,10 +98,6 @@ interface StringLiteral {
  */
 export function scanStringLiterals(argsContent: string, argsStart: number): StringLiteral[] {
   const literals: StringLiteral[] = []
-  // This regex is compatible with older JS environments. It mimics the 's' (dotAll)
-  // flag by using `[\s\S]` to match any character, including newlines, after an escape character.
-  // eslint-disable-next-line regexp/no-unused-capturing-group
-  const stringLiteralRegex = /("(?:\\[\s\S]|[^"\\])*")|('(?:\\[\s\S]|[^'\\])*')|(`(?:\\[\s\S]|[^`\\])*`)/g
   let match: RegExpExecArray | null
 
   while ((match = stringLiteralRegex.exec(argsContent)) !== null) {
