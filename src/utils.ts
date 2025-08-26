@@ -1,5 +1,18 @@
-import type { StringPosition } from './scan'
 import type { AutoCompleteExtractorResult } from '@unocss/core'
+
+export interface StringPosition {
+  start: number
+  end: number
+  content: string
+}
+
+const escapeRegex = /[.*+?^${}()|[\]\\]/g
+
+export function mergeOptionalRegexText(names: string[]): string {
+  return names.map(fn =>
+    fn.replace(escapeRegex, '\\$&'), // escape special regex chars
+  ).join('|')
+}
 
 export function generateCompletionResult(
   cursor: number,
