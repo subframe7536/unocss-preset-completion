@@ -35,13 +35,13 @@ export function presetDirectivesCompletion(options: DirectiveCompletionOptions =
     extract({ content, cursor }): AutoCompleteExtractorResult | null {
       const position = scanForDirectives(content, cursor, toArray(directives))
       if (!position) {
-        debug?.(`No functions called. cursor=${cursor}, directives=[${directives}]`)
+        debug?.(`No directive detected. cursor=${cursor}, directives=[${directives}]`)
         return null
       }
 
       const result = generateCompletionResult(cursor, [position])
       if (!result) {
-        debug?.(`No args inside function ${position.directiveName}()`)
+        debug?.(`No item inside directive ${position.directiveName}`)
       }
       return result
     },
