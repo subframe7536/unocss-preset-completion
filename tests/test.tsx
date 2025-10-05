@@ -29,6 +29,10 @@ export function Test2(props: Props): any {
   )
 }
 
+export const buttonCls = cls(
+  'fixed z-50 gap-4 bg-background p-6 shadow-lg transition ease-in-out data-[closed]:(duration-300 animate-out) data-[expanded]:(duration-500 animate-in) [&:focus-visible+div]:(outline-none ring-(1.5 ring offset-(2 background)))',
+)
+
 export function Test3(props: Props): any {
   return (
     <div

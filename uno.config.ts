@@ -1,4 +1,5 @@
 import type { UserConfig } from '@unocss/core'
+import type { Theme } from '@unocss/preset-wind3'
 
 import { appendFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -24,4 +25,14 @@ export default {
     variantGroup(),
     directives(),
   ],
-} satisfies UserConfig
+  shortcuts: {
+    'animate-out': 'transition-color',
+    'animate-in': 'transition-border',
+  },
+  theme: {
+    colors: {
+      ring: 'var(--ring)',
+      background: 'var(--background)',
+    },
+  },
+} satisfies UserConfig<Theme>
