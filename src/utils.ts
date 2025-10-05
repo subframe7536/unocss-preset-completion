@@ -17,6 +17,7 @@ export function mergeOptionalRegexText(names: string[]): string {
 export function generateCompletionResult(
   cursor: number,
   positions: StringPosition[],
+  debug?: ((msg: string) => void) | undefined,
 ): AutoCompleteExtractorResult | null {
   for (const literal of positions) {
     if (cursor < literal.start || cursor > literal.end) {
@@ -35,7 +36,7 @@ export function generateCompletionResult(
     const nextSpace = stringContent.indexOf(' ', cursorRel)
     let tokenEndRel = nextSpace === -1 ? stringContent.length : nextSpace
     let rightParen = stringContent.indexOf(')', cursorRel)
-    if (rightParen === -1 || rightParen < tokenEndRel) {
+    if (rightParen !== -1 && rightParen < tokenEndRel) {
       tokenEndRel = rightParen
     }
 
@@ -43,6 +44,20 @@ export function generateCompletionResult(
 
     const start = literal.start + 1 + tokenStartRel
     const end = literal.start + 1 + tokenEndRel
+    debug?.(JSON.stringify(
+      {
+        from: stringContent,
+        extracted,
+        start,
+        end,
+        tokenStartRel,
+        tokenEndRel,
+        rightParen,
+        nextSpace,
+      },
+      null,
+      2,
+    ))
     return {
       extracted,
       resolveReplacement: (suggestion: string) => ({

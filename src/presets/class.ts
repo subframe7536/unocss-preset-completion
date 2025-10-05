@@ -145,7 +145,7 @@ export function presetClassCompletion(options: ClassCompletionOptions = {}): Pre
       }
 
       const postions = scanStringLiterals(call.argsContent, call.argsStart)
-      const result = generateCompletionResult(cursor, postions)
+      const result = generateCompletionResult(cursor, postions, debug)
       if (!result) {
         debug?.(`No args inside function ${call.fnName}()`)
       }
