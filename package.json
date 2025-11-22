@@ -47,7 +47,7 @@
   "scripts": {
     "build": "tsdown",
     "dev": "tsdown --watch",
-    "release": "bun run build && bumpp && npm publish",
+    "release": "bun run build && bun run test && bumpp",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "bun test"
