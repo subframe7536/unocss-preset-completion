@@ -2,6 +2,13 @@ interface Props {
   name: string
   class: string
 }
+
+export const buttonVariant = {
+  default: 'text-red',
+  nest: {
+    data: 'p-10',
+  },
+}
 export function Test(_props: Props): any {
   return <div className="" />
 }
