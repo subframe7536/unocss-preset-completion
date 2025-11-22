@@ -92,7 +92,7 @@ export function presetDirectivesCompletion(options: DirectiveCompletionOptions =
         return null
       }
 
-      const result = generateCompletionResult(cursor, [position])
+      const result = generateCompletionResult(cursor, position)
       if (!result) {
         debug?.(`No item inside directive ${position.directiveName}`)
       }
