@@ -8,7 +8,7 @@ import { presetWind3 } from '@unocss/preset-wind3'
 import directives from '@unocss/transformer-directives'
 import variantGroup from '@unocss/transformer-variant-group'
 
-import { presetDirectivesCompletion, presetFunctionCompletion } from './src'
+import { presetDirectivesCompletion, presetFunctionCompletion, presetObjectCompletion } from './src'
 
 const path = `${tmpdir()}/uno.log`
 export default {
@@ -20,6 +20,7 @@ export default {
       },
     }),
     presetDirectivesCompletion(),
+    presetObjectCompletion(),
   ],
   transformers: [
     variantGroup(),
