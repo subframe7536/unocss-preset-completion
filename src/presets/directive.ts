@@ -20,7 +20,7 @@ import { generateCompletionResult, mergeOptionalRegexText } from '../utils'
  * @param directives - List of directive names to look for.
  * @returns A `FunctionCall` object if a matching function call is found, otherwise `null`.
  */
-export function scanForDirectives(
+export function scanForDirectivesAtCursor(
   content: string,
   cursor: number,
   directives: string[],
@@ -73,7 +73,7 @@ export interface DirectiveCompletionOptions {
 }
 
 /**
- * Creates a preset for UnoCSS that add autocomplete support in directives.
+ * Preset to enable UnoCSS autocomplete inside CSS Directives.
  * @param options - Configuration options for the preset.
  */
 export function presetDirectivesCompletion(options: DirectiveCompletionOptions = {}): Preset {
@@ -86,7 +86,7 @@ export function presetDirectivesCompletion(options: DirectiveCompletionOptions =
   const extractor: AutoCompleteExtractor = {
     name: 'css-directives',
     extract({ content, cursor }): AutoCompleteExtractorResult | null {
-      const position = scanForDirectives(content, cursor, toArray(directives))
+      const position = scanForDirectivesAtCursor(content, cursor, toArray(directives))
       if (!position) {
         debug?.(`No directive detected. cursor=${cursor}, directives=[${directives}]`)
         return null
