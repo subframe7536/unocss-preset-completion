@@ -108,7 +108,15 @@ export function scanStringLiterals(argsContent: string, argsStart: number): Stri
   return literals
 }
 
-export interface ClassCompletionOptions {
+/**
+ * @deprecated use {@link FunctionCompletionOptions} instead
+ */
+export interface ClassCompletionOptions extends FunctionCompletionOptions { }
+/**
+ * @deprecated use {@link FunctionCompletionOptions} instead
+ */
+export interface CompletionOptions extends FunctionCompletionOptions {}
+export interface FunctionCompletionOptions {
   /**
    * Array of function names that trigger class name autocomplete suggestions.
    * @default ['clsx', 'cn', 'classnames', 'cls', 'cva', 'tv']
@@ -117,18 +125,13 @@ export interface ClassCompletionOptions {
   debug?: (msg: string) => void
 }
 
-/**
- * @deprecated use {@link ClassCompletionOptions} instead
- */
-export type CompletionOptions = ClassCompletionOptions
-
 export const DEFAULT_FUNCTIONS = ['clsx', 'cn', 'classnames', 'cls', 'cva', 'tv']
 
 /**
  * Creates a preset for UnoCSS that add autocomplete support in functions.
  * @param options - Configuration options for the preset.
  */
-export function presetClassCompletion(options: ClassCompletionOptions = {}): Preset {
+export function presetFunctionCompletion(options: FunctionCompletionOptions = {}): Preset {
   const {
     autocompleteFunctions = DEFAULT_FUNCTIONS,
     debug,
@@ -161,6 +164,10 @@ export function presetClassCompletion(options: ClassCompletionOptions = {}): Pre
 }
 
 /**
- * @deprecated use {@link presetClassCompletion} instead
+ * @deprecated use {@link presetFunctionCompletion} instead
  */
-export const presetCompletion = presetClassCompletion
+export const presetCompletion = presetFunctionCompletion
+/**
+ * @deprecated use {@link presetFunctionCompletion} instead
+ */
+export const presetClassCompletion = presetFunctionCompletion

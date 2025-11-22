@@ -8,13 +8,13 @@ import { presetWind3 } from '@unocss/preset-wind3'
 import directives from '@unocss/transformer-directives'
 import variantGroup from '@unocss/transformer-variant-group'
 
-import { presetClassCompletion, presetDirectivesCompletion } from './src'
+import { presetDirectivesCompletion, presetFunctionCompletion } from './src'
 
 const path = `${tmpdir()}/uno.log`
 export default {
   presets: [
     presetWind3(),
-    presetClassCompletion({
+    presetFunctionCompletion({
       debug(msg) {
         appendFileSync(path, `${msg}\n`, 'utf-8')
       },
