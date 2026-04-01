@@ -54,6 +54,20 @@ export function Test3(props: Props): any {
   )
 }
 
+export function Test4(props: Props): any {
+  return (
+    <div
+      data-class={{
+        root: `text-black/40 ${props.class}`,
+        arr: [`text-black/40 ${props.class}`, ''],
+        nest: {
+          data: `text-black/40 ${props.class}`,
+        },
+      }}
+    />
+  )
+}
+
 function cls(...args: any): string {
   return args
 }

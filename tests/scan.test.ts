@@ -74,6 +74,42 @@ describe('scanObjectValueAtCursor', () => {
     expect(res!.key).toBe('primary')
     expect(res!.valueContent).toBe('text-red')
   })
+
+  it('detects multi-line backtick template value and key', () => {
+    const content = 'const variants = { root: `text-black/40\nline2` }'
+    const cursor = content.indexOf('line2') + 1
+    const res = scanObjectValueAtCursor(content, cursor)
+    expect(res).not.toBeNull()
+    expect(res!.key).toBe('root')
+    expect(res!.valueContent).toBe('text-black/40\nline2')
+  })
+
+  it('detects string inside array value', () => {
+    const content = "const variants = { arr: ['a', 'b'] }"
+    const cursor = content.indexOf("'b'") + 2
+    const res = scanObjectValueAtCursor(content, cursor)
+    expect(res).not.toBeNull()
+    expect(res!.key).toBe('arr')
+    expect(res!.valueContent).toBe('b')
+  })
+
+  it('handles block comment between colon and value', () => {
+    const content = "const variants = { key: /*comment*/ 'v' }"
+    const cursor = content.indexOf("'v'") + 2
+    const res = scanObjectValueAtCursor(content, cursor)
+    expect(res).not.toBeNull()
+    expect(res!.key).toBe('key')
+    expect(res!.valueContent).toBe('v')
+  })
+
+  it('handles computed keys and returns bracketed key', () => {
+    const content = "const variants = { [getKey()]: 'value' }"
+    const cursor = content.indexOf("'value'") + 2
+    const res = scanObjectValueAtCursor(content, cursor)
+    expect(res).not.toBeNull()
+    expect(res!.key).toBe('[getKey()]')
+    expect(res!.valueContent).toBe('value')
+  })
 })
 
 describe('scanForDirectivesAtCursor', () => {
