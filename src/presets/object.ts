@@ -108,41 +108,60 @@ export function scanObjectValueAtCursor(
   }
 
   // --- Step 1: Find the string literal boundaries surrounding the cursor ---
+  // Instead of naively taking the nearest quote to the left (which may be a
+  // closing quote), scan forward from the search window and locate the string
+  // literal whose opening quote occurs before the cursor and whose closing
+  // quote is after the cursor. This reliably finds the string that actually
+  // contains the cursor even in nested or JSX contexts.
   let openQuoteIndex = -1
   let quoteChar = ''
-  for (let i = cursor - 1; i >= searchLimit; i--) {
+  let closeQuoteIndex = -1
+
+  for (let i = searchLimit; i < cursor; i++) {
     const ch = content[i]
-    if (ch === '"' || ch === '\'' || ch === '`') {
-      if (isEscaped(i)) continue
+    if (ch !== '"' && ch !== '\'' && ch !== '`') continue
+    if (isEscaped(i)) continue
+
+    // Found a potential opening quote at `i`. Try to find its matching close.
+    const q = ch
+    let j = i + 1
+    let foundClose = false
+    while (j < len) {
+      const nextChar = content[j]
+      if (nextChar === '\\') {
+        j += 2
+        continue
+      }
+      if (q === '`' && nextChar === '$' && content[j + 1] === '{') {
+        const end = skipTemplateExpression(j + 1)
+        if (end < j) break
+        j = end + 1
+        continue
+      }
+      if (nextChar === q && !isEscaped(j)) {
+        foundClose = true
+        break
+      }
+      j++
+    }
+
+    const effectiveEnd = foundClose ? j : len
+
+    // If the cursor lies within this string literal, we've found the right one.
+    if (cursor > i && cursor <= effectiveEnd) {
       openQuoteIndex = i
-      quoteChar = ch
+      quoteChar = q
+      closeQuoteIndex = foundClose ? j : -1
       break
     }
+
+    // Otherwise skip ahead past this string and continue searching.
+    if (foundClose) i = j
   }
+
   if (openQuoteIndex === -1) return null
 
-  // Forward scan for closing quote to validate string (handle template ${...})
-  let closeQuoteIndex = -1
-  for (let i = openQuoteIndex + 1; i < len; i++) {
-    const ch = content[i]
-    if (ch === '\\') {
-      i++
-      continue
-    }
-    if (quoteChar === '`' && ch === '$' && content[i + 1] === '{') {
-      const end = skipTemplateExpression(i + 1)
-      if (end < i) break
-      i = end
-      continue
-    }
-    if (ch === quoteChar && !isEscaped(i)) {
-      closeQuoteIndex = i
-      break
-    }
-  }
-
   const effectiveEnd = closeQuoteIndex === -1 ? len : closeQuoteIndex
-  if (cursor <= openQuoteIndex || cursor > effectiveEnd) return null
 
   // --- Step 2: Scan Backwards for Colon (:) with bracket/comment awareness ---
   const findColonBefore = (index: number) => {

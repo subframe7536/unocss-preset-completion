@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test'
 
 import { scanForDirectivesAtCursor } from '../src/presets/directive'
 import { scanFunctionCallAtCursor, scanStringLiterals } from '../src/presets/function'
-import { scanObjectValueAtCursor } from '../src/presets/object'
+import { scanObjectValueAtCursor, presetObjectCompletion } from '../src/presets/object'
 
 describe('scanFunctionCallAtCursor', () => {
   it('finds simple function call', () => {
@@ -109,6 +109,37 @@ describe('scanObjectValueAtCursor', () => {
     expect(res).not.toBeNull()
     expect(res!.key).toBe('[getKey()]')
     expect(res!.valueContent).toBe('value')
+  })
+
+  it('trigger completion at start of object string value', () => {
+    const content = 'const variants = { root: `text-black` }'
+    const cursor = content.indexOf('`') + 1 // right after opening backtick
+    const preset = presetObjectCompletion()
+    const extractors = Array.isArray(preset.autocomplete?.extractors)
+      ? preset.autocomplete!.extractors
+      : preset.autocomplete?.extractors
+        ? [preset.autocomplete!.extractors]
+        : []
+    expect(extractors.length).toBeGreaterThan(0)
+    const extractor = extractors[0]
+    const res = extractor.extract({ content, cursor })
+    expect(res).toBeTruthy()
+  })
+
+  it('triggers completion when inside object string and characters typed', () => {
+    const content = 'const variants = { root: `text-black` }'
+    const cursor = content.indexOf('text-black') + 2 // after first char
+    const preset = presetObjectCompletion()
+    const extractors = Array.isArray(preset.autocomplete?.extractors)
+      ? preset.autocomplete!.extractors
+      : preset.autocomplete?.extractors
+        ? [preset.autocomplete!.extractors]
+        : []
+    expect(extractors.length).toBeGreaterThan(0)
+    const extractor = extractors[0] as any
+    const res = extractor.extract({ content, cursor })
+    expect(res).not.toBeNull()
+    expect(res!.extracted.charAt(0)).toBe('t')
   })
 })
 
