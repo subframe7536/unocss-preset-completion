@@ -1,14 +1,13 @@
-/* eslint-disable no-cond-assign */
-import type { StringPosition } from '../utils'
 import type {
   Arrayable,
   AutoCompleteExtractor,
   AutoCompleteExtractorResult,
   Preset,
 } from '@unocss/core'
-
 import { toArray } from '@unocss/core'
 
+/* eslint-disable no-cond-assign */
+import type { StringPosition } from '../utils'
 import { generateCompletionResult, mergeOptionalRegexText } from '../utils'
 
 /**
@@ -24,15 +23,17 @@ export function scanForDirectivesAtCursor(
   content: string,
   cursor: number,
   directives: string[],
-): StringPosition & { directiveName: string } | null {
+): (StringPosition & { directiveName: string }) | null {
   // Build regex to match any of the given directive names followed by ':'
   const regex = new RegExp(`(${mergeOptionalRegexText(directives)})\\s*:\\s*([^;]+?);`, 'g')
-  let state: {
-    directiveName: string
-    start: number
-    argsStart: number
-    argsContent: string
-  } | undefined
+  let state:
+    | {
+        directiveName: string
+        start: number
+        argsStart: number
+        argsContent: string
+      }
+    | undefined
 
   let arr: RegExpExecArray | null
   while ((arr = regex.exec(content)) !== null) {
@@ -77,10 +78,7 @@ export interface DirectiveCompletionOptions {
  * @param options - Configuration options for the preset.
  */
 export function presetDirectivesCompletion(options: DirectiveCompletionOptions = {}): Preset {
-  const {
-    directives = ['--at-apply', '--uno-apply', '--uno'],
-    debug,
-  } = options
+  const { directives = ['--at-apply', '--uno-apply', '--uno'], debug } = options
 
   // Use code scan instead of regexp to extract class
   const extractor: AutoCompleteExtractor = {

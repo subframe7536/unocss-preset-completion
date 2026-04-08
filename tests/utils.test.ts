@@ -1,7 +1,6 @@
-import type { StringPosition } from '../src/utils'
-
 import { describe, expect, it } from 'bun:test'
 
+import type { StringPosition } from '../src/utils'
 import { generateCompletionResult } from '../src/utils'
 
 describe('generateCompletionResult', () => {

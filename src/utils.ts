@@ -9,9 +9,11 @@ export interface StringPosition {
 const escapeRegex = /[.*+?^${}()|[\]\\]/g
 
 export function mergeOptionalRegexText(names: string[]): string {
-  return names.map(fn =>
-    fn.replace(escapeRegex, '\\$&'), // escape special regex chars
-  ).join('|')
+  return names
+    .map(
+      (fn) => fn.replace(escapeRegex, '\\$&'), // escape special regex chars
+    )
+    .join('|')
 }
 
 export function generateCompletionResult(
@@ -44,20 +46,22 @@ export function generateCompletionResult(
 
   const start = pos.start + 1 + tokenStartRel
   const end = pos.start + 1 + tokenEndRel
-  debug?.(JSON.stringify(
-    {
-      from: stringContent,
-      extracted,
-      start,
-      end,
-      tokenStartRel,
-      tokenEndRel,
-      rightParen,
-      nextSpace,
-    },
-    null,
-    2,
-  ))
+  debug?.(
+    JSON.stringify(
+      {
+        from: stringContent,
+        extracted,
+        start,
+        end,
+        tokenStartRel,
+        tokenEndRel,
+        rightParen,
+        nextSpace,
+      },
+      null,
+      2,
+    ),
+  )
   return {
     extracted,
     resolveReplacement: (suggestion: string) => ({

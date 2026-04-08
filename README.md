@@ -14,12 +14,15 @@ Custom auto completion preset for UnoCSS
 ```sh
 npm i -D unocss-preset-completion unocss
 ```
+
 ```sh
 yarn i -D unocss-preset-completion unocss
 ```
+
 ```sh
 pnpm i -D unocss-preset-completion unocss
 ```
+
 ```sh
 bun i -D unocss-preset-completion unocss
 ```
@@ -29,18 +32,22 @@ bun i -D unocss-preset-completion unocss
 ```ts
 // uno.config.ts
 import { defineConfig } from 'unocss'
-import { presetDirectiveCompletion, presetFunctionCompletion, presetObjectCompletion } from 'unocss-preset-completion'
+import {
+  presetDirectiveCompletion,
+  presetFunctionCompletion,
+  presetObjectCompletion,
+} from 'unocss-preset-completion'
 
 export default defineConfig({
   presets: [
     // ...
     presetFunctionCompletion({
       // optional
-      autocompleteFunctions: ['youCustomFunction']
+      autocompleteFunctions: ['youCustomFunction'],
     }),
     presetDirectiveCompletion({
       // optional
-      directives: ['--your-directive']
+      directives: ['--your-directive'],
     }),
     presetObjectCompletion(),
   ],

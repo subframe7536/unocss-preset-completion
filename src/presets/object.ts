@@ -1,6 +1,6 @@
-import type { StringPosition } from '../utils'
 import type { AutoCompleteExtractor, Preset } from '@unocss/core'
 
+import type { StringPosition } from '../utils'
 import { generateCompletionResult } from '../utils'
 
 /**
@@ -18,17 +18,16 @@ interface ObjectValueCall {
  * 2. Scans backwards to verify it matches the pattern: [Key] [:] [Value].
  * 3. Verifies the Key is valid (identifier or quoted).
  */
-export function scanObjectValueAtCursor(
-  content: string,
-  cursor: number,
-): ObjectValueCall | null {
+export function scanObjectValueAtCursor(content: string, cursor: number): ObjectValueCall | null {
   // --- Helpers and initial setup ---
   const searchLimit = Math.max(0, cursor - 2000)
   const len = content.length
 
   const countPrecedingBackslashes = (pos: number) => {
     let count = 0
-    for (let i = pos - 1; i >= 0 && content[i] === '\\'; i--) count++
+    for (let i = pos - 1; i >= 0 && content[i] === '\\'; i--) {
+      count++
+    }
     return count
   }
   const isEscaped = (pos: number) => countPrecedingBackslashes(pos) % 2 === 1
@@ -37,11 +36,14 @@ export function scanObjectValueAtCursor(
     let depth = 1
     for (let i = pos - 1; i >= searchLimit; i--) {
       const ch = content[i]
-      if (ch === closeChar) depth++
-      else if (ch === openChar) {
+      if (ch === closeChar) {
+        depth++
+      } else if (ch === openChar) {
         depth--
-        if (depth === 0) return i
-      } else if (ch === '"' || ch === '\'' || ch === '`') {
+        if (depth === 0) {
+          return i
+        }
+      } else if (ch === '"' || ch === "'" || ch === '`') {
         const q = ch
         // skip string backwards
         let j = i - 1
@@ -52,7 +54,9 @@ export function scanObjectValueAtCursor(
           }
           j--
         }
-        if (j < searchLimit) return -1
+        if (j < searchLimit) {
+          return -1
+        }
       } else if (ch === '/' && i - 1 >= searchLimit && content[i - 1] === '*') {
         // skip block comment backwards: find the matching /*
         let j = i - 2
@@ -63,7 +67,9 @@ export function scanObjectValueAtCursor(
           }
           j--
         }
-        if (j < searchLimit) return -1
+        if (j < searchLimit) {
+          return -1
+        }
       }
     }
     return -1
@@ -79,7 +85,7 @@ export function scanObjectValueAtCursor(
         i += 2
         continue
       }
-      if (ch === '\'' || ch === '"' || ch === '`') {
+      if (ch === "'" || ch === '"' || ch === '`') {
         const q = ch
         i++
         while (i < len) {
@@ -100,8 +106,11 @@ export function scanObjectValueAtCursor(
         }
         continue
       }
-      if (ch === '{') depth++
-      else if (ch === '}') depth--
+      if (ch === '{') {
+        depth++
+      } else if (ch === '}') {
+        depth--
+      }
       i++
     }
     return i - 1
@@ -114,13 +123,16 @@ export function scanObjectValueAtCursor(
   // quote is after the cursor. This reliably finds the string that actually
   // contains the cursor even in nested or JSX contexts.
   let openQuoteIndex = -1
-  let quoteChar = ''
   let closeQuoteIndex = -1
 
   for (let i = searchLimit; i < cursor; i++) {
     const ch = content[i]
-    if (ch !== '"' && ch !== '\'' && ch !== '`') continue
-    if (isEscaped(i)) continue
+    if (ch !== '"' && ch !== "'" && ch !== '`') {
+      continue
+    }
+    if (isEscaped(i)) {
+      continue
+    }
 
     // Found a potential opening quote at `i`. Try to find its matching close.
     const q = ch
@@ -134,7 +146,9 @@ export function scanObjectValueAtCursor(
       }
       if (q === '`' && nextChar === '$' && content[j + 1] === '{') {
         const end = skipTemplateExpression(j + 1)
-        if (end < j) break
+        if (end < j) {
+          break
+        }
         j = end + 1
         continue
       }
@@ -150,16 +164,19 @@ export function scanObjectValueAtCursor(
     // If the cursor lies within this string literal, we've found the right one.
     if (cursor > i && cursor <= effectiveEnd) {
       openQuoteIndex = i
-      quoteChar = q
       closeQuoteIndex = foundClose ? j : -1
       break
     }
 
     // Otherwise skip ahead past this string and continue searching.
-    if (foundClose) i = j
+    if (foundClose) {
+      i = j
+    }
   }
 
-  if (openQuoteIndex === -1) return null
+  if (openQuoteIndex === -1) {
+    return null
+  }
 
   const effectiveEnd = closeQuoteIndex === -1 ? len : closeQuoteIndex
 
@@ -167,12 +184,13 @@ export function scanObjectValueAtCursor(
   const findColonBefore = (index: number) => {
     let i = index - 1
     while (i >= searchLimit) {
-      if (/\s/.test(content[i])) {
+      const cur = content[i]!
+      if (/\s/.test(cur)) {
         i--
         continue
       }
       // block comment end (*/)
-      if (content[i] === '/' && i - 1 >= 0 && content[i - 1] === '*') {
+      if (cur === '/' && i - 1 >= 0 && content[i - 1] === '*') {
         let j = i - 2
         while (j >= searchLimit) {
           if (content[j] === '/' && content[j + 1] === '*') {
@@ -181,55 +199,72 @@ export function scanObjectValueAtCursor(
           }
           j--
         }
-        if (j < searchLimit) return -1
+        if (j < searchLimit) {
+          return -1
+        }
         continue
       }
       // skip balanced closers like ], ), }
-      if (content[i] === ']' || content[i] === ')' || content[i] === '}') {
-        const closeCh = content[i]
-        const openCh = closeCh === ']' ? '[' : closeCh === ')' ? '(' : '{'
-        const openIdx = findMatchingOpenForClose(i, openCh, closeCh)
-        if (openIdx === -1) return -1
+      if (cur === ']' || cur === ')' || cur === '}') {
+        const openCh = cur === ']' ? '[' : cur === ')' ? '(' : '{'
+        const openIdx = findMatchingOpenForClose(i, openCh, cur)
+        if (openIdx === -1) {
+          return -1
+        }
         i = openIdx - 1
         continue
       }
-      if (content[i] === ':') return i
+      if (content[i] === ':') {
+        return i
+      }
       i--
     }
     return -1
   }
 
   const colonIndex = findColonBefore(openQuoteIndex)
-  if (colonIndex === -1) return null
+  if (colonIndex === -1) {
+    return null
+  }
 
   // --- Step 3: Scan Backwards for the Key ---
   let ptr = colonIndex - 1
-  while (ptr >= searchLimit && /\s/.test(content[ptr])) ptr--
+  while (ptr >= searchLimit && /\s/.test(content[ptr]!)) {
+    ptr--
+  }
 
   const keyEnd = ptr + 1
   let rawKeyStart = ptr
   let key = ''
 
-  const c = content[ptr]
-  if (c === '"' || c === '\'') {
+  const c = content[ptr]!
+  if (c === '"' || c === "'") {
     const keyQuote = c
     // find opening quote
     let j = ptr - 1
     while (j >= searchLimit) {
-      if (content[j] === keyQuote && !isEscaped(j)) break
+      if (content[j] === keyQuote && !isEscaped(j)) {
+        break
+      }
       j--
     }
-    if (j < searchLimit) return null
+    if (j < searchLimit) {
+      return null
+    }
     rawKeyStart = j
     key = content.slice(j + 1, ptr) // inner content
   } else if (/[\w$]/.test(c)) {
     let j = ptr
-    while (j >= searchLimit && /[\w$]/.test(content[j])) j--
+    while (j >= searchLimit && /[\w$]/.test(content[j]!)) {
+      j--
+    }
     rawKeyStart = j + 1
     key = content.slice(rawKeyStart, keyEnd)
   } else if (c === ']') {
     const openIdx = findMatchingOpenForClose(ptr, '[', ']')
-    if (openIdx === -1) return null
+    if (openIdx === -1) {
+      return null
+    }
     rawKeyStart = openIdx
     key = content.slice(rawKeyStart, keyEnd) // include brackets
   } else {
@@ -238,12 +273,16 @@ export function scanObjectValueAtCursor(
 
   // --- Step 4: (Optional) Context Check ---
   let contextPtr = rawKeyStart - 1
-  while (contextPtr >= searchLimit && /\s/.test(content[contextPtr])) contextPtr--
+  while (contextPtr >= searchLimit && /\s/.test(content[contextPtr]!)) {
+    contextPtr--
+  }
 
   if (content.slice(Math.max(0, rawKeyStart - 5), rawKeyStart).trim() === 'case') {
     return null
   }
-  if (content[contextPtr] === '?') return null
+  if (content[contextPtr] === '?') {
+    return null
+  }
 
   return {
     key,

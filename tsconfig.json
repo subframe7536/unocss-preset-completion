@@ -1,26 +1,8 @@
 {
+  "extends": "@subf/config/tsconfig-lib",
   "compilerOptions": {
-    "target": "esnext",
     "jsx": "react-jsx",
-    "lib": [
-      "esnext"
-    ],
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "types": [
-      "bun-types"
-    ],
-    "strict": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "sourceMap": true,
-    "esModuleInterop": true
+    "types": ["bun"]
   },
-  "exclude": [
-    "**/dist/**",
-    "**/node_modules/**",
-    "eslint.config.mjs"
-  ]
+  "exclude": ["**/dist/**", "**/node_modules/**", "eslint.config.mjs"]
 }

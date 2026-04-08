@@ -1,6 +1,6 @@
-import type { StringPosition } from '../utils'
 import type { AutoCompleteExtractor, AutoCompleteExtractorResult, Preset } from '@unocss/core'
 
+import type { StringPosition } from '../utils'
 import { generateCompletionResult } from '../utils'
 
 interface FunctionCall {
@@ -118,7 +118,7 @@ export function scanStringLiterals(
     const char = content[i]
 
     // Check if we found the start of a string literal
-    if (char === '"' || char === '\'' || char === '`') {
+    if (char === '"' || char === "'" || char === '`') {
       const quote = char
       const startIndex = i
       const globalStart = start + startIndex
@@ -183,7 +183,7 @@ export function scanStringLiterals(
 /**
  * @deprecated use {@link FunctionCompletionOptions} instead
  */
-export interface ClassCompletionOptions extends FunctionCompletionOptions { }
+export interface ClassCompletionOptions extends FunctionCompletionOptions {}
 /**
  * @deprecated use {@link FunctionCompletionOptions} instead
  */
@@ -204,10 +204,7 @@ export const DEFAULT_FUNCTIONS = ['clsx', 'cn', 'classnames', 'cls', 'cva', 'tv'
  * @param options - Configuration options for the preset.
  */
 export function presetFunctionCompletion(options: FunctionCompletionOptions = {}): Preset {
-  const {
-    autocompleteFunctions = DEFAULT_FUNCTIONS,
-    debug,
-  } = options
+  const { autocompleteFunctions = DEFAULT_FUNCTIONS, debug } = options
 
   // Use code scan instead of regexp to extract class
   const extractor: AutoCompleteExtractor = {

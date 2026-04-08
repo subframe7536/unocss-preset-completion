@@ -34,7 +34,7 @@ describe('scanFunctionCallAtCursor', () => {
 
 describe('scanStringLiterals', () => {
   it('finds a simple single-quoted string', () => {
-    const content = '\'hello\''
+    const content = "'hello'"
     const cursor = 2 // inside 'hello'
     const res = scanStringLiterals(content, 0, cursor)
     expect(res).not.toBeNull()
@@ -44,17 +44,17 @@ describe('scanStringLiterals', () => {
   })
 
   it('handles escaped quotes inside string', () => {
-    const content = '\'don\\\'t\''
+    const content = "'don\\'t'"
     // place cursor inside the word don't
     const cursor = content.indexOf('n') + 1
     const res = scanStringLiterals(content, 0, cursor)
     expect(res).not.toBeNull()
     // inner content should preserve the escape sequence (backslash + quote)
-    expect(res!.content).toBe(content.slice(1, content.lastIndexOf('\'')))
+    expect(res!.content).toBe(content.slice(1, content.lastIndexOf("'")))
   })
 
   it('handles unclosed string while typing', () => {
-    const content = '\'open'
+    const content = "'open"
     const cursor = content.indexOf('o') + 2
     const res = scanStringLiterals(content, 0, cursor)
     expect(res).not.toBeNull()
@@ -67,7 +67,7 @@ describe('scanStringLiterals', () => {
 
 describe('scanObjectValueAtCursor', () => {
   it('detects object property value and key (identifier key)', () => {
-    const content = 'const variants = { primary: \'text-red\', other: \'x\' }'
+    const content = "const variants = { primary: 'text-red', other: 'x' }"
     const cursor = content.indexOf('text-red') + 2
     const res = scanObjectValueAtCursor(content, cursor)
     expect(res).not.toBeNull()

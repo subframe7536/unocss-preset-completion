@@ -22,7 +22,16 @@ export function Icon(props: Props): any {
 }
 
 export function Test1(props: Props): any {
-  return <div className={cls(`accent-amber`, 1 ? (2 > 0 ? 'flex' : 'flex-col') : 'transition-all', props.class)} />
+  return (
+    <div
+      className={cls(
+        `accent-amber`,
+        // oxlint-disable-next-line no-constant-condition
+        1 ? (2 > 0 ? 'flex' : 'flex-col') : 'transition-all',
+        props.class,
+      )}
+    />
+  )
 }
 
 export function Test2(props: Props): any {
