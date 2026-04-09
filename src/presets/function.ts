@@ -197,7 +197,7 @@ export interface FunctionCompletionOptions {
   debug?: (msg: string) => void
 }
 
-export const DEFAULT_FUNCTIONS = ['clsx', 'cn', 'classnames', 'cls', 'cva', 'tv']
+export const DEFAULT_FUNCTIONS: string[] = ['clsx', 'cn', 'classnames', 'cls', 'cva', 'tv']
 
 /**
  * Preset to enable UnoCSS autocomplete inside Functions.
@@ -236,8 +236,8 @@ export function presetFunctionCompletion(options: FunctionCompletionOptions = {}
 /**
  * @deprecated use {@link presetFunctionCompletion} instead
  */
-export const presetCompletion = presetFunctionCompletion
+export const presetCompletion: Preset = presetFunctionCompletion
 /**
  * @deprecated use {@link presetFunctionCompletion} instead
  */
-export const presetClassCompletion = presetFunctionCompletion
+export const presetClassCompletion: Preset = presetFunctionCompletion
