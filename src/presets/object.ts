@@ -26,7 +26,7 @@ interface StringLiteral {
 const DEFAULT_SCAN_LIMIT = 2000
 
 /**
- * Scans object property strings using the same parser path for keys and values.
+ * Scans object property strings using one parser path for key and value completion.
  *
  * Supported forms include:
  * - `{ key: 'classes' }`
@@ -42,17 +42,15 @@ export function scanObjectAtCursor(
   const searchLimit = Math.max(0, cursor - DEFAULT_SCAN_LIMIT)
   const len = content.length
 
-  const countPrecedingBackslashes = (pos: number) => {
-    let count = 0
+  const isEscaped = (pos: number) => {
+    let slashCount = 0
     for (let i = pos - 1; i >= 0 && content[i] === '\\'; i--) {
-      count++
+      slashCount++
     }
-    return count
+    return slashCount % 2 === 1
   }
 
-  const isEscaped = (pos: number) => countPrecedingBackslashes(pos) % 2 === 1
-
-  const skipTemplateExpression = (openBraceIndex: number): number => {
+  function skipTemplateExpression(openBraceIndex: number): number {
     let i = openBraceIndex + 1
     let depth = 1
 
@@ -63,11 +61,8 @@ export function scanObjectAtCursor(
         continue
       }
       if (ch === '"' || ch === "'" || ch === '`') {
-        const skipped = skipStringForward(i)
-        if (!skipped) {
-          return len - 1
-        }
-        i = skipped.end + 1
+        const skipped = readStringForward(i)
+        i = skipped ? skipped.end + 1 : len
         continue
       }
       if (ch === '{') {
@@ -81,7 +76,7 @@ export function scanObjectAtCursor(
     return i - 1
   }
 
-  const skipStringForward = (start: number): StringLiteral | null => {
+  function readStringForward(start: number): StringLiteral | null {
     const quote = content[start]
     if (quote !== '"' && quote !== "'" && quote !== '`') {
       return null
@@ -117,44 +112,7 @@ export function scanObjectAtCursor(
     }
   }
 
-  const findStringAtCursor = (): StringLiteral | null => {
-    for (let i = searchLimit; i < cursor; i++) {
-      const literal = skipStringForward(i)
-      if (!literal) {
-        continue
-      }
-
-      if (cursor > literal.start && cursor <= literal.end) {
-        return literal
-      }
-
-      i = literal.end
-    }
-
-    return null
-  }
-
-  const skipWhitespaceAndCommentsForward = (start: number) => {
-    let i = start
-    while (i < len) {
-      if (/\s/.test(content[i]!)) {
-        i++
-        continue
-      }
-      if (content[i] === '/' && content[i + 1] === '*') {
-        i += 2
-        while (i < len && !(content[i] === '*' && content[i + 1] === '/')) {
-          i++
-        }
-        i = Math.min(i + 2, len)
-        continue
-      }
-      break
-    }
-    return i
-  }
-
-  const skipWhitespaceAndCommentsBackward = (start: number) => {
+  const previousSignificantIndex = (start: number) => {
     let i = start
     while (i >= searchLimit) {
       if (/\s/.test(content[i]!)) {
@@ -174,7 +132,16 @@ export function scanObjectAtCursor(
     return i
   }
 
-  const findMatchingOpenForClose = (closeIndex: number, openChar: string, closeChar: string) => {
+  function findOpeningQuoteBefore(closeIndex: number, quote: string) {
+    for (let i = closeIndex - 1; i >= searchLimit; i--) {
+      if (content[i] === quote && !isEscaped(i)) {
+        return i
+      }
+    }
+    return -1
+  }
+
+  function findMatchingOpenForClose(closeIndex: number, openChar: string, closeChar: string) {
     let depth = 1
     for (let i = closeIndex - 1; i >= searchLimit; i--) {
       const ch = content[i]
@@ -197,146 +164,142 @@ export function scanObjectAtCursor(
         continue
       }
       if (ch === '/' && content[i - 1] === '*') {
-        i = skipWhitespaceAndCommentsBackward(i)
+        i = previousSignificantIndex(i)
       }
     }
     return -1
   }
 
-  const findOpeningQuoteBefore = (closeIndex: number, quote: string) => {
-    for (let i = closeIndex - 1; i >= searchLimit; i--) {
-      if (content[i] === quote && !isEscaped(i)) {
-        return i
-      }
+  let literal: StringLiteral | null = null
+  for (let i = searchLimit; i < cursor; i++) {
+    const current = readStringForward(i)
+    if (!current) {
+      continue
     }
-    return -1
+
+    if (cursor > current.start && cursor <= current.end) {
+      literal = current
+      break
+    }
+
+    i = current.end
   }
 
-  const findPropertyColonBefore = (index: number) => {
-    for (let i = skipWhitespaceAndCommentsBackward(index - 1); i >= searchLimit; i--) {
-      const ch = content[i]!
-      if (ch === ']' || ch === ')' || ch === '}') {
-        const openChar = ch === ']' ? '[' : ch === ')' ? '(' : '{'
-        const openIndex = findMatchingOpenForClose(i, openChar, ch)
-        if (openIndex === -1) {
-          return -1
-        }
-        i = openIndex
-        continue
-      }
-      if (ch === '"' || ch === "'" || ch === '`') {
-        const openIndex = findOpeningQuoteBefore(i, ch)
-        if (openIndex === -1) {
-          return -1
-        }
-        i = openIndex
-        continue
-      }
-      if (ch === ':') {
-        return i
-      }
-    }
-    return -1
-  }
-
-  const readPropertyKeyBefore = (colonIndex: number) => {
-    let keyEnd = skipWhitespaceAndCommentsBackward(colonIndex - 1) + 1
-    let keyStart = keyEnd - 1
-    let key = ''
-    const ch = content[keyStart]
-
-    if (ch === '"' || ch === "'") {
-      const openIndex = findOpeningQuoteBefore(keyStart, ch)
-      if (openIndex === -1) {
-        return null
-      }
-      keyStart = openIndex
-      key = content.slice(openIndex + 1, keyEnd - 1)
-    } else if (ch === ']') {
-      const openIndex = findMatchingOpenForClose(keyStart, '[', ']')
-      if (openIndex === -1) {
-        return null
-      }
-      keyStart = openIndex
-      key = content.slice(keyStart, keyEnd)
-    } else if (ch && /[\w$]/.test(ch)) {
-      while (keyStart >= searchLimit && /[\w$]/.test(content[keyStart]!)) {
-        keyStart--
-      }
-      keyStart++
-      key = content.slice(keyStart, keyEnd)
-    } else {
-      return null
-    }
-
-    const contextIndex = skipWhitespaceAndCommentsBackward(keyStart - 1)
-    if (content.slice(Math.max(0, keyStart - 5), keyStart).trim() === 'case') {
-      return null
-    }
-    if (content[contextIndex] === '?') {
-      return null
-    }
-
-    return { key, keyStart }
-  }
-
-  const buildKeyMatch = (literal: StringLiteral): ObjectPropertyCall | null => {
-    if (literal.quote === '`') {
-      return null
-    }
-
-    const colonIndex = skipWhitespaceAndCommentsForward(literal.end + 1)
-    if (content[colonIndex] !== ':') {
-      return null
-    }
-
-    const contextIndex = skipWhitespaceAndCommentsBackward(literal.start - 1)
-    if (content[contextIndex] !== '{' && content[contextIndex] !== ',') {
-      return null
-    }
-
-    return {
-      key: literal.content,
-      kind: 'key',
-      valueStart: literal.start,
-      valueEnd: literal.end,
-      valueContent: literal.content,
-    }
-  }
-
-  const buildValueMatch = (literal: StringLiteral): ObjectPropertyCall | null => {
-    const colonIndex = findPropertyColonBefore(literal.start)
-    if (colonIndex === -1) {
-      return null
-    }
-
-    const keyInfo = readPropertyKeyBefore(colonIndex)
-    if (!keyInfo) {
-      return null
-    }
-
-    return {
-      key: keyInfo.key,
-      kind: 'value',
-      valueStart: literal.start,
-      valueEnd: literal.end,
-      valueContent: literal.content,
-    }
-  }
-
-  const literal = findStringAtCursor()
   if (!literal) {
     return null
   }
 
-  if (mode === 'key') {
-    return buildKeyMatch(literal)
-  }
-  if (mode === 'value') {
-    return buildValueMatch(literal)
+  if (mode !== 'value' && literal.quote !== '`') {
+    let colonIndex = literal.end + 1
+    while (colonIndex < len) {
+      if (/\s/.test(content[colonIndex]!)) {
+        colonIndex++
+        continue
+      }
+      if (content[colonIndex] === '/' && content[colonIndex + 1] === '*') {
+        colonIndex += 2
+        while (colonIndex < len && !(content[colonIndex] === '*' && content[colonIndex + 1] === '/')) {
+          colonIndex++
+        }
+        colonIndex = Math.min(colonIndex + 2, len)
+        continue
+      }
+      break
+    }
+
+    const contextIndex = previousSignificantIndex(literal.start - 1)
+    if (
+      content[colonIndex] === ':'
+      && (content[contextIndex] === '{' || content[contextIndex] === ',')
+    ) {
+      return {
+        key: literal.content,
+        kind: 'key',
+        valueStart: literal.start,
+        valueEnd: literal.end,
+        valueContent: literal.content,
+      }
+    }
   }
 
-  return buildKeyMatch(literal) ?? buildValueMatch(literal)
+  if (mode === 'key') {
+    return null
+  }
+
+  let propertyColonIndex = -1
+  for (let i = previousSignificantIndex(literal.start - 1); i >= searchLimit; i--) {
+    const ch = content[i]!
+    if (ch === ']' || ch === ')' || ch === '}') {
+      const openChar = ch === ']' ? '[' : ch === ')' ? '(' : '{'
+      const openIndex = findMatchingOpenForClose(i, openChar, ch)
+      if (openIndex === -1) {
+        return null
+      }
+      i = openIndex
+      continue
+    }
+    if (ch === '"' || ch === "'" || ch === '`') {
+      const openIndex = findOpeningQuoteBefore(i, ch)
+      if (openIndex === -1) {
+        return null
+      }
+      i = openIndex
+      continue
+    }
+    if (ch === ':') {
+      propertyColonIndex = i
+      break
+    }
+  }
+
+  if (propertyColonIndex === -1) {
+    return null
+  }
+
+  const keyEnd = previousSignificantIndex(propertyColonIndex - 1) + 1
+  let keyStart = keyEnd - 1
+  let key = ''
+  const keyEndChar = content[keyStart]
+
+  if (keyEndChar === '"' || keyEndChar === "'") {
+    const openIndex = findOpeningQuoteBefore(keyStart, keyEndChar)
+    if (openIndex === -1) {
+      return null
+    }
+    keyStart = openIndex
+    key = content.slice(openIndex + 1, keyEnd - 1)
+  } else if (keyEndChar === ']') {
+    const openIndex = findMatchingOpenForClose(keyStart, '[', ']')
+    if (openIndex === -1) {
+      return null
+    }
+    keyStart = openIndex
+    key = content.slice(keyStart, keyEnd)
+  } else if (keyEndChar && /[\w$]/.test(keyEndChar)) {
+    while (keyStart >= searchLimit && /[\w$]/.test(content[keyStart]!)) {
+      keyStart--
+    }
+    keyStart++
+    key = content.slice(keyStart, keyEnd)
+  } else {
+    return null
+  }
+
+  const contextIndex = previousSignificantIndex(keyStart - 1)
+  if (content.slice(Math.max(0, keyStart - 5), keyStart).trim() === 'case') {
+    return null
+  }
+  if (content[contextIndex] === '?') {
+    return null
+  }
+
+  return {
+    key,
+    kind: 'value',
+    valueStart: literal.start,
+    valueEnd: literal.end,
+    valueContent: literal.content,
+  }
 }
 
 export function scanObjectValueAtCursor(content: string, cursor: number): ObjectPropertyCall | null {
