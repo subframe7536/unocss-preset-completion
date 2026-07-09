@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test'
 
 import { scanForDirectivesAtCursor } from '../src/presets/directive'
 import { scanFunctionCallAtCursor, scanStringLiterals } from '../src/presets/function'
-import { scanObjectValueAtCursor, presetObjectCompletion } from '../src/presets/object'
+import { scanObjectAtCursor, scanObjectValueAtCursor, presetObjectCompletion } from '../src/presets/object'
 
 describe('scanFunctionCallAtCursor', () => {
   it('finds simple function call', () => {
@@ -140,6 +140,61 @@ describe('scanObjectValueAtCursor', () => {
     const res = extractor.extract({ content, cursor })
     expect(res).not.toBeNull()
     expect(res!.extracted.charAt(0)).toBe('t')
+  })
+
+  it('detects quoted object property key class names', () => {
+    const content = "const classes = { 'cursor-pointer border text-red': true }"
+    const cursor = content.indexOf('text-red') + 'text-red'.length
+    const res = scanObjectAtCursor(content, cursor, 'key')
+    expect(res).not.toBeNull()
+    expect(res!.kind).toBe('key')
+    expect(res!.valueContent).toBe('cursor-pointer border text-red')
+  })
+
+  it('triggers completion at the end of an object property key token', () => {
+    const content = "const classes = { 'cursor-pointer border text-red': true }"
+    const cursor = content.indexOf('text-red') + 'text-red'.length
+    const preset = presetObjectCompletion()
+    const extractors = Array.isArray(preset.autocomplete?.extractors)
+      ? preset.autocomplete!.extractors
+      : preset.autocomplete?.extractors
+        ? [preset.autocomplete!.extractors]
+        : []
+    const extractor = extractors[0] as any
+    const res = extractor.extract({ content, cursor })
+    expect(res).not.toBeNull()
+    expect(res!.extracted).toBe('text-red')
+  })
+
+  it('triggers completion after spacing an object property key token', () => {
+    const content = "const classes = { 'cursor-pointer border text-red ': true }"
+    const cursor = content.indexOf('text-red') + 'text-red '.length
+    const preset = presetObjectCompletion()
+    const extractors = Array.isArray(preset.autocomplete?.extractors)
+      ? preset.autocomplete!.extractors
+      : preset.autocomplete?.extractors
+        ? [preset.autocomplete!.extractors]
+        : []
+    const extractor = extractors[0] as any
+    const res = extractor.extract({ content, cursor })
+    expect(res).not.toBeNull()
+    expect(res!.extracted).toBe('')
+  })
+
+  it('respects object completion mode', () => {
+    const content = "const classes = { 'cursor-pointer border text-red': true, root: 'text-blue' }"
+    const keyCursor = content.indexOf('text-red') + 'text-red'.length
+    const valueCursor = content.indexOf('text-blue') + 'text-blue'.length
+
+    const keyPreset = presetObjectCompletion({ mode: 'key' })
+    const valuePreset = presetObjectCompletion({ mode: 'value' })
+    const keyExtractor = (keyPreset.autocomplete!.extractors as any[])[0]
+    const valueExtractor = (valuePreset.autocomplete!.extractors as any[])[0]
+
+    expect(keyExtractor.extract({ content, cursor: keyCursor })).not.toBeNull()
+    expect(keyExtractor.extract({ content, cursor: valueCursor })).toBeNull()
+    expect(valueExtractor.extract({ content, cursor: valueCursor })).not.toBeNull()
+    expect(valueExtractor.extract({ content, cursor: keyCursor })).toBeNull()
   })
 })
 
