@@ -121,7 +121,7 @@ describe('scanObjectValueAtCursor', () => {
         ? [preset.autocomplete!.extractors]
         : []
     expect(extractors.length).toBeGreaterThan(0)
-    const extractor = extractors[0]
+    const extractor = extractors[0]!
     const res = extractor.extract({ content, cursor })
     expect(res).toBeTruthy()
   })

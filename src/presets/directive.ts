@@ -37,7 +37,7 @@ export function scanForDirectivesAtCursor(
 
   let arr: RegExpExecArray | null
   while ((arr = regex.exec(content)) !== null) {
-    const fnName = arr[1]
+    const fnName = arr[1]!
     const start = arr.index
     const argsStart = start + fnName.length + 1
 
@@ -46,7 +46,7 @@ export function scanForDirectivesAtCursor(
     }
 
     if (!state || state.start < start) {
-      state = { directiveName: fnName, start, argsStart, argsContent: arr[2] }
+      state = { directiveName: fnName, start, argsStart, argsContent: arr[2]! }
     }
   }
   if (!state) {
