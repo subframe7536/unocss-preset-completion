@@ -1,6 +1,6 @@
 {
   "name": "unocss-preset-completion",
-  "version": "0.3.3",
+  "version": "0.4.0",
   "description": "Custom auto completion preset for UnoCSS",
   "keywords": [
     "unocss",
@@ -33,7 +33,7 @@
   "scripts": {
     "build": "tsdown",
     "dev": "tsdown --watch",
-    "release": "bun run build && bun run test && bumpp",
+    "release": "bun run build && bun run test && bumpp --all",
     "format": "oxfmt",
     "lint": "oxlint --fix",
     "typecheck": "tsc --noEmit",
