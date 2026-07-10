@@ -73,6 +73,9 @@ export function Test4(props: Props): any {
           data: `text-black/40 ${props.class}`,
         },
       }}
+      data-compose-class={{
+        'cursor-pointer border text-red': true,
+      }}
     />
   )
 }

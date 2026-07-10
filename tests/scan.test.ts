@@ -1,8 +1,19 @@
 import { describe, expect, it } from 'bun:test'
 
-import { scanForDirectivesAtCursor } from '../src/presets/directive'
-import { scanFunctionCallAtCursor, scanStringLiterals } from '../src/presets/function'
-import { scanObjectValueAtCursor, presetObjectCompletion } from '../src/presets/object'
+import { presetDirectivesCompletion, scanForDirectivesAtCursor } from '../src/presets/directive'
+import { presetFunctionCompletion, scanFunctionCallAtCursor, scanStringLiterals } from '../src/presets/function'
+import { scanObjectAtCursor, scanObjectValueAtCursor, presetObjectCompletion } from '../src/presets/object'
+
+function getFirstExtractor(preset: any): any {
+  const extractors = Array.isArray(preset.autocomplete?.extractors)
+    ? preset.autocomplete!.extractors
+    : preset.autocomplete?.extractors
+      ? [preset.autocomplete!.extractors]
+      : []
+
+  expect(extractors.length).toBeGreaterThan(0)
+  return extractors[0]!
+}
 
 describe('scanFunctionCallAtCursor', () => {
   it('finds simple function call', () => {
@@ -29,6 +40,38 @@ describe('scanFunctionCallAtCursor', () => {
     const cursor = content.indexOf('a') + 1
     const res = scanFunctionCallAtCursor(content, cursor, new Set(['bar']))
     expect(res).toBeNull()
+  })
+})
+
+describe('presetFunctionCompletion', () => {
+  it('extracts completion token from a default class helper', () => {
+    const content = "const className = cls('flex text-red')"
+    const cursor = content.indexOf('text-red') + 'text'.length
+    const extractor = getFirstExtractor(presetFunctionCompletion())
+    const res = extractor.extract({ content, cursor })
+
+    expect(res).not.toBeNull()
+    expect(res!.extracted).toBe('text')
+  })
+
+  it('honors custom autocomplete function names', () => {
+    const content = "const className = composeClass('grid gap-2')"
+    const cursor = content.indexOf('gap-2') + 'gap'.length
+    const extractor = getFirstExtractor(
+      presetFunctionCompletion({ autocompleteFunctions: ['composeClass'] }),
+    )
+    const res = extractor.extract({ content, cursor })
+
+    expect(res).not.toBeNull()
+    expect(res!.extracted).toBe('gap')
+  })
+
+  it('ignores unsupported function names', () => {
+    const content = "const className = notClass('flex text-red')"
+    const cursor = content.indexOf('text-red') + 'text'.length
+    const extractor = getFirstExtractor(presetFunctionCompletion({ autocompleteFunctions: ['cls'] }))
+
+    expect(extractor.extract({ content, cursor })).toBeNull()
   })
 })
 
@@ -111,6 +154,21 @@ describe('scanObjectValueAtCursor', () => {
     expect(res!.valueContent).toBe('value')
   })
 
+  it('handles escaped quotes in object string values', () => {
+    const content = String.raw`const variants = { label: 'before \'after text-red' }`
+    const cursor = content.indexOf('text-red') + 'text'.length
+    const res = scanObjectValueAtCursor(content, cursor)
+    expect(res).not.toBeNull()
+    expect(res!.key).toBe('label')
+    expect(res!.valueContent).toBe(String.raw`before \'after text-red`)
+  })
+
+  it('ignores ternary branches that are not object property values', () => {
+    const content = "const cls = enabled ? 'text-red' : 'text-blue'"
+    const cursor = content.indexOf('text-red') + 'text'.length
+    expect(scanObjectValueAtCursor(content, cursor)).toBeNull()
+  })
+
   it('trigger completion at start of object string value', () => {
     const content = 'const variants = { root: `text-black` }'
     const cursor = content.indexOf('`') + 1 // right after opening backtick
@@ -141,6 +199,61 @@ describe('scanObjectValueAtCursor', () => {
     expect(res).not.toBeNull()
     expect(res!.extracted.charAt(0)).toBe('t')
   })
+
+  it('detects quoted object property key class names', () => {
+    const content = "const classes = { 'cursor-pointer border text-red': true }"
+    const cursor = content.indexOf('text-red') + 'text-red'.length
+    const res = scanObjectAtCursor(content, cursor, 'key')
+    expect(res).not.toBeNull()
+    expect(res!.kind).toBe('key')
+    expect(res!.valueContent).toBe('cursor-pointer border text-red')
+  })
+
+  it('triggers completion at the end of an object property key token', () => {
+    const content = "const classes = { 'cursor-pointer border text-red': true }"
+    const cursor = content.indexOf('text-red') + 'text-red'.length
+    const preset = presetObjectCompletion()
+    const extractors = Array.isArray(preset.autocomplete?.extractors)
+      ? preset.autocomplete!.extractors
+      : preset.autocomplete?.extractors
+        ? [preset.autocomplete!.extractors]
+        : []
+    const extractor = extractors[0] as any
+    const res = extractor.extract({ content, cursor })
+    expect(res).not.toBeNull()
+    expect(res!.extracted).toBe('text-red')
+  })
+
+  it('triggers completion after spacing an object property key token', () => {
+    const content = "const classes = { 'cursor-pointer border text-red ': true }"
+    const cursor = content.indexOf('text-red') + 'text-red '.length
+    const preset = presetObjectCompletion()
+    const extractors = Array.isArray(preset.autocomplete?.extractors)
+      ? preset.autocomplete!.extractors
+      : preset.autocomplete?.extractors
+        ? [preset.autocomplete!.extractors]
+        : []
+    const extractor = extractors[0] as any
+    const res = extractor.extract({ content, cursor })
+    expect(res).not.toBeNull()
+    expect(res!.extracted).toBe('')
+  })
+
+  it('respects object completion mode', () => {
+    const content = "const classes = { 'cursor-pointer border text-red': true, root: 'text-blue' }"
+    const keyCursor = content.indexOf('text-red') + 'text-red'.length
+    const valueCursor = content.indexOf('text-blue') + 'text-blue'.length
+
+    const keyPreset = presetObjectCompletion({ mode: 'key' })
+    const valuePreset = presetObjectCompletion({ mode: 'value' })
+    const keyExtractor = (keyPreset.autocomplete!.extractors as any[])[0]
+    const valueExtractor = (valuePreset.autocomplete!.extractors as any[])[0]
+
+    expect(keyExtractor.extract({ content, cursor: keyCursor })).not.toBeNull()
+    expect(keyExtractor.extract({ content, cursor: valueCursor })).toBeNull()
+    expect(valueExtractor.extract({ content, cursor: valueCursor })).not.toBeNull()
+    expect(valueExtractor.extract({ content, cursor: keyCursor })).toBeNull()
+  })
 })
 
 describe('scanForDirectivesAtCursor', () => {
@@ -156,5 +269,33 @@ describe('scanForDirectivesAtCursor', () => {
     expect(res!.start).toBe(expectedStart)
     expect(res!.start).toBeLessThanOrEqual(cursor)
     expect(res!.end).toBeGreaterThanOrEqual(cursor)
+  })
+
+  it('extracts completion token from the default directive preset', () => {
+    const content = '.foo { --uno: flex text-red; }'
+    const cursor = content.indexOf('text-red') + 'text'.length
+    const extractor = getFirstExtractor(presetDirectivesCompletion())
+    const res = extractor.extract({ content, cursor })
+
+    expect(res).not.toBeNull()
+    expect(res!.extracted).toBe('text')
+  })
+
+  it('honors custom directive names and escapes regex characters', () => {
+    const content = '.foo { --uno.apply: grid gap-2; --uno: text-red; }'
+    const cursor = content.indexOf('gap-2') + 'gap'.length
+    const extractor = getFirstExtractor(presetDirectivesCompletion({ directives: '--uno.apply' }))
+    const res = extractor.extract({ content, cursor })
+
+    expect(res).not.toBeNull()
+    expect(res!.extracted).toBe('gap')
+  })
+
+  it('ignores directives that are not configured', () => {
+    const content = '.foo { --uno: flex text-red; }'
+    const cursor = content.indexOf('text-red') + 'text'.length
+    const extractor = getFirstExtractor(presetDirectivesCompletion({ directives: '--custom' }))
+
+    expect(extractor.extract({ content, cursor })).toBeNull()
   })
 })

@@ -3,107 +3,66 @@ import type { AutoCompleteExtractor, Preset } from '@unocss/core'
 import type { StringPosition } from '../utils'
 import { generateCompletionResult } from '../utils'
 
+export type ObjectCompletionMode = 'both' | 'key' | 'value'
+
 /**
- * Represents an identified object property value.
+ * Represents the object string (key or value) that contains the cursor.
  */
-interface ObjectValueCall {
+interface ObjectPropertyCall {
   key: string
+  kind: 'key' | 'value'
   valueStart: number
   valueEnd: number
   valueContent: string
 }
 
+interface StringLiteral {
+  quote: string
+  start: number
+  end: number
+  content: string
+}
+
+const DEFAULT_SCAN_LIMIT = 2000
+
 /**
- * 1. Locates the string literal at the cursor.
- * 2. Scans backwards to verify it matches the pattern: [Key] [:] [Value].
- * 3. Verifies the Key is valid (identifier or quoted).
+ * Scans object property strings using one parser path for key and value completion.
+ *
+ * Supported forms include:
+ * - `{ key: 'classes' }`
+ * - `{ 'classes': condition }`
+ * - `{ [computedKey]: 'classes' }`
+ * - `{ key: ['classes', 'more-classes'] }`
  */
-export function scanObjectValueAtCursor(content: string, cursor: number): ObjectValueCall | null {
-  // --- Helpers and initial setup ---
-  const searchLimit = Math.max(0, cursor - 2000)
+export function scanObjectAtCursor(
+  content: string,
+  cursor: number,
+  mode: ObjectCompletionMode = 'both',
+): ObjectPropertyCall | null {
+  const searchLimit = Math.max(0, cursor - DEFAULT_SCAN_LIMIT)
   const len = content.length
 
-  const countPrecedingBackslashes = (pos: number) => {
-    let count = 0
+  const isEscaped = (pos: number) => {
+    let slashCount = 0
     for (let i = pos - 1; i >= 0 && content[i] === '\\'; i--) {
-      count++
+      slashCount++
     }
-    return count
-  }
-  const isEscaped = (pos: number) => countPrecedingBackslashes(pos) % 2 === 1
-
-  const findMatchingOpenForClose = (pos: number, openChar: string, closeChar: string) => {
-    let depth = 1
-    for (let i = pos - 1; i >= searchLimit; i--) {
-      const ch = content[i]
-      if (ch === closeChar) {
-        depth++
-      } else if (ch === openChar) {
-        depth--
-        if (depth === 0) {
-          return i
-        }
-      } else if (ch === '"' || ch === "'" || ch === '`') {
-        const q = ch
-        // skip string backwards
-        let j = i - 1
-        while (j >= searchLimit) {
-          if (content[j] === q && !isEscaped(j)) {
-            i = j
-            break
-          }
-          j--
-        }
-        if (j < searchLimit) {
-          return -1
-        }
-      } else if (ch === '/' && i - 1 >= searchLimit && content[i - 1] === '*') {
-        // skip block comment backwards: find the matching /*
-        let j = i - 2
-        while (j >= searchLimit) {
-          if (content[j] === '/' && content[j + 1] === '*') {
-            i = j
-            break
-          }
-          j--
-        }
-        if (j < searchLimit) {
-          return -1
-        }
-      }
-    }
-    return -1
+    return slashCount % 2 === 1
   }
 
-  const skipTemplateExpression = (openBraceIndex: number) => {
-    // openBraceIndex should point at '{'
+  function skipTemplateExpression(openBraceIndex: number): number {
     let i = openBraceIndex + 1
     let depth = 1
+
     while (i < len && depth > 0) {
       const ch = content[i]
       if (ch === '\\') {
         i += 2
         continue
       }
-      if (ch === "'" || ch === '"' || ch === '`') {
-        const q = ch
-        i++
-        while (i < len) {
-          if (content[i] === '\\') {
-            i += 2
-            continue
-          }
-          if (content[i] === q) {
-            i++
-            break
-          }
-          // nested template expression inside a template string
-          if (q === '`' && content[i] === '$' && content[i + 1] === '{') {
-            i = skipTemplateExpression(i + 1) + 1
-            continue
-          }
-          i++
-        }
+      if (ch === '"' || ch === "'" || ch === '`') {
+        const skipped = readStringForward(i)
+        i = skipped ? skipped.end + 1 : len
         continue
       }
       if (ch === '{') {
@@ -113,186 +72,250 @@ export function scanObjectValueAtCursor(content: string, cursor: number): Object
       }
       i++
     }
+
     return i - 1
   }
 
-  // --- Step 1: Find the string literal boundaries surrounding the cursor ---
-  // Instead of naively taking the nearest quote to the left (which may be a
-  // closing quote), scan forward from the search window and locate the string
-  // literal whose opening quote occurs before the cursor and whose closing
-  // quote is after the cursor. This reliably finds the string that actually
-  // contains the cursor even in nested or JSX contexts.
-  let openQuoteIndex = -1
-  let closeQuoteIndex = -1
-
-  for (let i = searchLimit; i < cursor; i++) {
-    const ch = content[i]
-    if (ch !== '"' && ch !== "'" && ch !== '`') {
-      continue
-    }
-    if (isEscaped(i)) {
-      continue
+  function readStringForward(start: number): StringLiteral | null {
+    const quote = content[start]
+    if (quote !== '"' && quote !== "'" && quote !== '`') {
+      return null
     }
 
-    // Found a potential opening quote at `i`. Try to find its matching close.
-    const q = ch
-    let j = i + 1
-    let foundClose = false
-    while (j < len) {
-      const nextChar = content[j]
-      if (nextChar === '\\') {
-        j += 2
+    let i = start + 1
+    while (i < len) {
+      const ch = content[i]
+      if (ch === '\\') {
+        i += 2
         continue
       }
-      if (q === '`' && nextChar === '$' && content[j + 1] === '{') {
-        const end = skipTemplateExpression(j + 1)
-        if (end < j) {
-          break
+      if (quote === '`' && ch === '$' && content[i + 1] === '{') {
+        i = skipTemplateExpression(i + 1) + 1
+        continue
+      }
+      if (ch === quote && !isEscaped(i)) {
+        return {
+          quote,
+          start,
+          end: i,
+          content: content.slice(start + 1, i),
         }
-        j = end + 1
-        continue
       }
-      if (nextChar === q && !isEscaped(j)) {
-        foundClose = true
-        break
-      }
-      j++
+      i++
     }
 
-    const effectiveEnd = foundClose ? j : len
-
-    // If the cursor lies within this string literal, we've found the right one.
-    if (cursor > i && cursor <= effectiveEnd) {
-      openQuoteIndex = i
-      closeQuoteIndex = foundClose ? j : -1
-      break
-    }
-
-    // Otherwise skip ahead past this string and continue searching.
-    if (foundClose) {
-      i = j
+    return {
+      quote,
+      start,
+      end: len,
+      content: content.slice(start + 1),
     }
   }
 
-  if (openQuoteIndex === -1) {
-    return null
-  }
-
-  const effectiveEnd = closeQuoteIndex === -1 ? len : closeQuoteIndex
-
-  // --- Step 2: Scan Backwards for Colon (:) with bracket/comment awareness ---
-  const findColonBefore = (index: number) => {
-    let i = index - 1
+  const previousSignificantIndex = (start: number) => {
+    let i = start
     while (i >= searchLimit) {
-      const cur = content[i]!
-      if (/\s/.test(cur)) {
+      if (/\s/.test(content[i]!)) {
         i--
         continue
       }
-      // block comment end (*/)
-      if (cur === '/' && i - 1 >= 0 && content[i - 1] === '*') {
-        let j = i - 2
-        while (j >= searchLimit) {
-          if (content[j] === '/' && content[j + 1] === '*') {
-            i = j - 1
-            break
-          }
-          j--
+      if (content[i] === '/' && content[i - 1] === '*') {
+        i -= 2
+        while (i >= searchLimit && !(content[i] === '/' && content[i + 1] === '*')) {
+          i--
         }
-        if (j < searchLimit) {
-          return -1
-        }
+        i--
         continue
       }
-      // skip balanced closers like ], ), }
-      if (cur === ']' || cur === ')' || cur === '}') {
-        const openCh = cur === ']' ? '[' : cur === ')' ? '(' : '{'
-        const openIdx = findMatchingOpenForClose(i, openCh, cur)
-        if (openIdx === -1) {
-          return -1
-        }
-        i = openIdx - 1
-        continue
-      }
-      if (content[i] === ':') {
+      break
+    }
+    return i
+  }
+
+  function findOpeningQuoteBefore(closeIndex: number, quote: string) {
+    for (let i = closeIndex - 1; i >= searchLimit; i--) {
+      if (content[i] === quote && !isEscaped(i)) {
         return i
       }
-      i--
     }
     return -1
   }
 
-  const colonIndex = findColonBefore(openQuoteIndex)
-  if (colonIndex === -1) {
+  function findMatchingOpenForClose(closeIndex: number, openChar: string, closeChar: string) {
+    let depth = 1
+    for (let i = closeIndex - 1; i >= searchLimit; i--) {
+      const ch = content[i]
+      if (ch === closeChar) {
+        depth++
+        continue
+      }
+      if (ch === openChar) {
+        depth--
+        if (depth === 0) {
+          return i
+        }
+        continue
+      }
+      if (ch === '"' || ch === "'" || ch === '`') {
+        i = findOpeningQuoteBefore(i, ch)
+        if (i === -1) {
+          return -1
+        }
+        continue
+      }
+      if (ch === '/' && content[i - 1] === '*') {
+        i = previousSignificantIndex(i)
+      }
+    }
+    return -1
+  }
+
+  let literal: StringLiteral | null = null
+  for (let i = searchLimit; i < cursor; i++) {
+    const current = readStringForward(i)
+    if (!current) {
+      continue
+    }
+
+    if (cursor > current.start && cursor <= current.end) {
+      literal = current
+      break
+    }
+
+    i = current.end
+  }
+
+  if (!literal) {
     return null
   }
 
-  // --- Step 3: Scan Backwards for the Key ---
-  let ptr = colonIndex - 1
-  while (ptr >= searchLimit && /\s/.test(content[ptr]!)) {
-    ptr--
+  if (mode !== 'value' && literal.quote !== '`') {
+    let colonIndex = literal.end + 1
+    while (colonIndex < len) {
+      if (/\s/.test(content[colonIndex]!)) {
+        colonIndex++
+        continue
+      }
+      if (content[colonIndex] === '/' && content[colonIndex + 1] === '*') {
+        colonIndex += 2
+        while (colonIndex < len && !(content[colonIndex] === '*' && content[colonIndex + 1] === '/')) {
+          colonIndex++
+        }
+        colonIndex = Math.min(colonIndex + 2, len)
+        continue
+      }
+      break
+    }
+
+    const contextIndex = previousSignificantIndex(literal.start - 1)
+    if (
+      content[colonIndex] === ':'
+      && (content[contextIndex] === '{' || content[contextIndex] === ',')
+    ) {
+      return {
+        key: literal.content,
+        kind: 'key',
+        valueStart: literal.start,
+        valueEnd: literal.end,
+        valueContent: literal.content,
+      }
+    }
   }
 
-  const keyEnd = ptr + 1
-  let rawKeyStart = ptr
-  let key = ''
+  if (mode === 'key') {
+    return null
+  }
 
-  const c = content[ptr]!
-  if (c === '"' || c === "'") {
-    const keyQuote = c
-    // find opening quote
-    let j = ptr - 1
-    while (j >= searchLimit) {
-      if (content[j] === keyQuote && !isEscaped(j)) {
-        break
+  let propertyColonIndex = -1
+  for (let i = previousSignificantIndex(literal.start - 1); i >= searchLimit; i--) {
+    const ch = content[i]!
+    if (ch === ']' || ch === ')' || ch === '}') {
+      const openChar = ch === ']' ? '[' : ch === ')' ? '(' : '{'
+      const openIndex = findMatchingOpenForClose(i, openChar, ch)
+      if (openIndex === -1) {
+        return null
       }
-      j--
+      i = openIndex
+      continue
     }
-    if (j < searchLimit) {
+    if (ch === '"' || ch === "'" || ch === '`') {
+      const openIndex = findOpeningQuoteBefore(i, ch)
+      if (openIndex === -1) {
+        return null
+      }
+      i = openIndex
+      continue
+    }
+    if (ch === ':') {
+      propertyColonIndex = i
+      break
+    }
+  }
+
+  if (propertyColonIndex === -1) {
+    return null
+  }
+
+  const keyEnd = previousSignificantIndex(propertyColonIndex - 1) + 1
+  let keyStart = keyEnd - 1
+  let key = ''
+  const keyEndChar = content[keyStart]
+
+  if (keyEndChar === '"' || keyEndChar === "'") {
+    const openIndex = findOpeningQuoteBefore(keyStart, keyEndChar)
+    if (openIndex === -1) {
       return null
     }
-    rawKeyStart = j
-    key = content.slice(j + 1, ptr) // inner content
-  } else if (/[\w$]/.test(c)) {
-    let j = ptr
-    while (j >= searchLimit && /[\w$]/.test(content[j]!)) {
-      j--
-    }
-    rawKeyStart = j + 1
-    key = content.slice(rawKeyStart, keyEnd)
-  } else if (c === ']') {
-    const openIdx = findMatchingOpenForClose(ptr, '[', ']')
-    if (openIdx === -1) {
+    keyStart = openIndex
+    key = content.slice(openIndex + 1, keyEnd - 1)
+  } else if (keyEndChar === ']') {
+    const openIndex = findMatchingOpenForClose(keyStart, '[', ']')
+    if (openIndex === -1) {
       return null
     }
-    rawKeyStart = openIdx
-    key = content.slice(rawKeyStart, keyEnd) // include brackets
+    keyStart = openIndex
+    key = content.slice(keyStart, keyEnd)
+  } else if (keyEndChar && /[\w$]/.test(keyEndChar)) {
+    while (keyStart >= searchLimit && /[\w$]/.test(content[keyStart]!)) {
+      keyStart--
+    }
+    keyStart++
+    key = content.slice(keyStart, keyEnd)
   } else {
     return null
   }
 
-  // --- Step 4: (Optional) Context Check ---
-  let contextPtr = rawKeyStart - 1
-  while (contextPtr >= searchLimit && /\s/.test(content[contextPtr]!)) {
-    contextPtr--
-  }
-
-  if (content.slice(Math.max(0, rawKeyStart - 5), rawKeyStart).trim() === 'case') {
+  const contextIndex = previousSignificantIndex(keyStart - 1)
+  if (content.slice(Math.max(0, keyStart - 5), keyStart).trim() === 'case') {
     return null
   }
-  if (content[contextPtr] === '?') {
+  if (content[contextIndex] === '?') {
     return null
   }
 
   return {
     key,
-    valueStart: openQuoteIndex,
-    valueEnd: effectiveEnd,
-    valueContent: content.slice(openQuoteIndex + 1, effectiveEnd),
+    kind: 'value',
+    valueStart: literal.start,
+    valueEnd: literal.end,
+    valueContent: literal.content,
   }
 }
 
+export function scanObjectValueAtCursor(content: string, cursor: number): ObjectPropertyCall | null {
+  return scanObjectAtCursor(content, cursor, 'value')
+}
+
+export function scanObjectKeyAtCursor(content: string, cursor: number): ObjectPropertyCall | null {
+  return scanObjectAtCursor(content, cursor, 'key')
+}
+
 export interface ObjectCompletionOptions {
+  /**
+   * Controls whether completion is enabled for object property values, quoted keys, or both.
+   * @default 'both'
+   */
+  mode?: ObjectCompletionMode
   debug?: (msg: string) => void
 }
 
@@ -311,15 +334,15 @@ export interface ObjectCompletionOptions {
  * ```
  */
 export function presetObjectCompletion(options: ObjectCompletionOptions = {}): Preset {
-  const { debug } = options
+  const { debug, mode = 'both' } = options
 
   const extractor: AutoCompleteExtractor = {
     name: 'object-completion',
     extract({ content, cursor }) {
-      const objectMatch = scanObjectValueAtCursor(content, cursor)
+      const objectMatch = scanObjectAtCursor(content, cursor, mode)
 
       if (!objectMatch) {
-        debug?.(`No object. cursor=${cursor}`)
+        debug?.(`No object. cursor=${cursor}, mode=${mode}`)
         return null
       }
 
@@ -329,7 +352,7 @@ export function presetObjectCompletion(options: ObjectCompletionOptions = {}): P
         content: objectMatch.valueContent,
       }
 
-      debug?.(`Found object property: [${objectMatch.key}]`)
+      debug?.(`Found object ${objectMatch.kind}: [${objectMatch.key}]`)
 
       return generateCompletionResult(cursor, pos, debug)
     },
