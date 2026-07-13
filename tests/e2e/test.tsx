@@ -25,6 +25,7 @@ export function Test1(props: Props): any {
   const data = 1
   return (
     <div
+      data-test="test"
       className={cls(
         `accent-amber`,
         data ? (data > 0 ? 'flex' : 'flex-col') : 'transition-all',

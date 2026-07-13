@@ -198,7 +198,10 @@ export function scanObjectAtCursor(
       }
       if (content[colonIndex] === '/' && content[colonIndex + 1] === '*') {
         colonIndex += 2
-        while (colonIndex < len && !(content[colonIndex] === '*' && content[colonIndex + 1] === '/')) {
+        while (
+          colonIndex < len &&
+          !(content[colonIndex] === '*' && content[colonIndex + 1] === '/')
+        ) {
           colonIndex++
         }
         colonIndex = Math.min(colonIndex + 2, len)
@@ -209,8 +212,8 @@ export function scanObjectAtCursor(
 
     const contextIndex = previousSignificantIndex(literal.start - 1)
     if (
-      content[colonIndex] === ':'
-      && (content[contextIndex] === '{' || content[contextIndex] === ',')
+      content[colonIndex] === ':' &&
+      (content[contextIndex] === '{' || content[contextIndex] === ',')
     ) {
       return {
         key: literal.content,
@@ -302,7 +305,10 @@ export function scanObjectAtCursor(
   }
 }
 
-export function scanObjectValueAtCursor(content: string, cursor: number): ObjectPropertyCall | null {
+export function scanObjectValueAtCursor(
+  content: string,
+  cursor: number,
+): ObjectPropertyCall | null {
   return scanObjectAtCursor(content, cursor, 'value')
 }
 

@@ -1,8 +1,16 @@
 import { describe, expect, it } from 'bun:test'
 
 import { presetDirectivesCompletion, scanForDirectivesAtCursor } from '../src/presets/directive'
-import { presetFunctionCompletion, scanFunctionCallAtCursor, scanStringLiterals } from '../src/presets/function'
-import { scanObjectAtCursor, scanObjectValueAtCursor, presetObjectCompletion } from '../src/presets/object'
+import {
+  presetFunctionCompletion,
+  scanFunctionCallAtCursor,
+  scanStringLiterals,
+} from '../src/presets/function'
+import {
+  scanObjectAtCursor,
+  scanObjectValueAtCursor,
+  presetObjectCompletion,
+} from '../src/presets/object'
 
 function getFirstExtractor(preset: any): any {
   const extractors = Array.isArray(preset.autocomplete?.extractors)
@@ -69,7 +77,9 @@ describe('presetFunctionCompletion', () => {
   it('ignores unsupported function names', () => {
     const content = "const className = notClass('flex text-red')"
     const cursor = content.indexOf('text-red') + 'text'.length
-    const extractor = getFirstExtractor(presetFunctionCompletion({ autocompleteFunctions: ['cls'] }))
+    const extractor = getFirstExtractor(
+      presetFunctionCompletion({ autocompleteFunctions: ['cls'] }),
+    )
 
     expect(extractor.extract({ content, cursor })).toBeNull()
   })
