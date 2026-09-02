@@ -22,4 +22,5 @@ jobs:
           nub-version: 0.7.5
 
       - run: nub ci
+      - run: nub run build
       - run: nub publish --provenance --no-git-checks
