@@ -121,7 +121,7 @@ export function scanObjectAtCursor(
       }
       if (content[i] === '/' && content[i - 1] === '*') {
         i -= 2
-        while (i >= searchLimit && !(content[i] === '/' && content[i + 1] === '*')) {
+        while (i >= searchLimit && (content[i] !== '/' || content[i + 1] !== '*')) {
           i--
         }
         i--
@@ -200,7 +200,7 @@ export function scanObjectAtCursor(
         colonIndex += 2
         while (
           colonIndex < len &&
-          !(content[colonIndex] === '*' && content[colonIndex + 1] === '/')
+          (content[colonIndex] !== '*' || content[colonIndex + 1] !== '/')
         ) {
           colonIndex++
         }
@@ -261,7 +261,7 @@ export function scanObjectAtCursor(
 
   const keyEnd = previousSignificantIndex(propertyColonIndex - 1) + 1
   let keyStart = keyEnd - 1
-  let key = ''
+  let key
   const keyEndChar = content[keyStart]
 
   if (keyEndChar === '"' || keyEndChar === "'") {

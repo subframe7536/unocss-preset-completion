@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test'
+import { describe, expect, it } from 'vitest'
 
 import { presetDirectivesCompletion, scanForDirectivesAtCursor } from '../src/presets/directive'
 import {

@@ -1,8 +1,29 @@
 {
-  "extends": "@subf/config/tsconfig-lib",
   "compilerOptions": {
-    "jsx": "preserve",
-    "types": ["bun"]
+    "target": "ES2023",
+    "module": "esnext",
+    "moduleResolution": "Bundler",
+    "moduleDetection": "force",
+    "strict": true,
+    "strictNullChecks": true,
+    "noUnusedLocals": true,
+    "noImplicitOverride": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "verbatimModuleSyntax": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "lib": [
+      "ES2023"
+    ],
+    "noUncheckedIndexedAccess": true,
+    "jsx": "preserve"
   },
-  "exclude": ["**/dist/**", "**/node_modules/**", "eslint.config.mjs"]
+  "exclude": [
+    "**/dist/**",
+    "**/node_modules/**",
+    "eslint.config.mjs"
+  ]
 }

@@ -6,7 +6,6 @@ import type {
 } from '@unocss/core'
 import { toArray } from '@unocss/core'
 
-/* eslint-disable no-cond-assign */
 import type { StringPosition } from '../utils'
 import { generateCompletionResult, mergeOptionalRegexText } from '../utils'
 
